@@ -22,7 +22,11 @@ object Words {
         val usedVariants = HashSet<Int>()
         usedVariants.add(wordId)
 
+        val correctVariantIndex = this.random.nextInt(4)
+
         val variants = Array(4, { i ->
+            if (i == correctVariantIndex) return@Array Pair(wordId + 1, this.pairs[wordId].second)
+
             var rand: Int
 
             do {
