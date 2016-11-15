@@ -66,7 +66,7 @@ task buildFrontend << {
 
     File tempDir = buildFrontend.getTemporaryDir()
 
-    execOrFail((String[]) ['git', 'clone', 'git@github.com:Rulexec/obliviate-frontend.git', tempDir.getAbsolutePath()], null, "hadn't cloned")
+    execOrFail((String[]) ['git', 'clone', 'https://github.com/Rulexec/obliviate-frontend.git', tempDir.getAbsolutePath()], null, "hadn't cloned")
     execOrFail((String[]) ['npm', 'install'], tempDir, "npm hadn't installed")
     execOrFail((String[]) ['npm', 'run', 'webpack'], tempDir, "webpack failed")
 
