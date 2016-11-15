@@ -1,13 +1,14 @@
-package ruliov.obliviate
+package ruliov.jetty
 
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.eclipse.jetty.server.handler.HandlerList
+import ruliov.jetty.HTTPRouter
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-class JettyServer(private val router: HTTPRouter, port: Int) {
+class JettyServer(private val handler: IHTTPMiddleware, port: Int) {
     private var server: Server
 
     inner class ServerHandler : AbstractHandler() {
@@ -22,9 +23,15 @@ class JettyServer(private val router: HTTPRouter, port: Int) {
                 // FIXME: for development only
                 response.setHeader("Access-Control-Allow-Origin", "*")
 
-                val routed = this@JettyServer.router.route(baseRequest)
+                /*val routed = this@JettyServer.router.route(baseRequest)
 
-                if (routed) baseRequest.isHandled = true
+                if (routed) baseRequest.isHandled = true*/
+
+                var handled = true
+
+                handler.handle(baseRequest, { handled = false })
+
+                baseRequest.isHandled = handled
             }
         }
     }

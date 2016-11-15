@@ -41,3 +41,51 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
+
+clean.doFirst {
+    delete "${projectDir}/src/main/resources/static"
+}
+
+task copyDeps(type: Copy) {
+    from configurations.runtime
+    into new File(buildDir, 'libs-runtime')
+}
+
+def execOrFail(String[] cmds, dir, errorText) {
+    Process process = Runtime.getRuntime().exec(cmds, null, dir)
+
+    int result = process.waitFor()
+
+    if (result != 0) throw new GradleScriptException(errorText + ": " + result, null)
+}
+task buildFrontend << {
+    File resourcesDir = new File(projectDir, 'src/main/resources/static')
+
+    resourcesDir.mkdirs()
+    if (!resourcesDir.exists()) throw new GradleScriptException("Cannot create resources folder", null)
+
+    File tempDir = buildFrontend.getTemporaryDir()
+
+    execOrFail((String[]) ['git', 'clone', 'git@github.com:Rulexec/obliviate-frontend.git', tempDir.getAbsolutePath()], null, "hadn't cloned")
+    execOrFail((String[]) ['npm', 'install'], tempDir, "npm hadn't installed")
+    execOrFail((String[]) ['npm', 'run', 'webpack'], tempDir, "webpack failed")
+
+    copy {
+        from new File(tempDir, 'static')
+        into resourcesDir
+    }
+}
+
+task stage(dependsOn: ['build', 'clean', 'copyDeps', 'buildFrontend'])
+build.mustRunAfter(clean, buildFrontend)
+buildFrontend.mustRunAfter clean
+copyDeps.mustRunAfter clean
+
+jar {
+    manifest {
+        attributes(
+            //'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+            'Main-Class': 'ruliov.obliviate.Main'
+        )
+    }
+}

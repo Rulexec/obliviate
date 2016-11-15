@@ -1,4 +1,4 @@
-package ruliov.obliviate
+package ruliov.jetty
 
 import org.eclipse.jetty.server.Request
 

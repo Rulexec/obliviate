@@ -1,6 +1,7 @@
-package ruliov.obliviate
+package ruliov.jetty
 
 import org.eclipse.jetty.server.Request
+import ruliov.jetty.IHTTPController
 import java.util.*
 import java.util.regex.Pattern
 

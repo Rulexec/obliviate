@@ -1,12 +1,17 @@
+@file:JvmName("Main")
+
 package ruliov.obliviate
 
 import org.eclipse.jetty.server.Request
+import ruliov.jetty.HTTPRouter
+import ruliov.jetty.IHTTPController
+import ruliov.jetty.IHTTPMiddleware
+import ruliov.jetty.JettyServer
+import ruliov.jetty.static.StaticFilesServer
 import ruliov.obliviate.json.toJSON
-import java.util.*
 
 fun main(args: Array<String>) {
     val router = HTTPRouter()
-    val random = Random()
 
     router.addRoute("GET", "/words/random", object : IHTTPController {
         override fun handle(request: Request, groups: Array<String>?) {
@@ -23,7 +28,28 @@ fun main(args: Array<String>) {
         }
     })
 
-    val server = JettyServer(router, 5000)
+    val classLoader = ClassLoader.getSystemClassLoader()
+
+    val staticFilesServer = StaticFilesServer({ s ->
+        // TODO: How insecure is it?
+
+        var filename = s
+
+        if (filename.equals("/")) filename = "/index.html"
+
+        classLoader.getResourceAsStream("static" + filename)
+    })
+
+    val handler = object : IHTTPMiddleware {
+        override fun handle(request: Request, next: () -> Unit) {
+            val isRouted = router.route(request)
+            if (!isRouted) staticFilesServer.handle(request, next)
+        }
+    }
+
+    val PORT = System.getenv("PORT")?.toInt() ?: 5000
+
+    val server = JettyServer(handler, PORT)
 
     server.start()
     server.join()
