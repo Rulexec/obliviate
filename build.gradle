@@ -64,14 +64,8 @@ task buildFrontend << {
     resourcesDir.mkdirs()
     if (!resourcesDir.exists()) throw new GradleScriptException("Cannot create resources folder", null)
 
-    File tempDir = buildFrontend.getTemporaryDir()
-
-    execOrFail((String[]) ['git', 'clone', 'https://github.com/Rulexec/obliviate-frontend.git', tempDir.getAbsolutePath()], null, "hadn't cloned")
-    execOrFail((String[]) ['npm', 'install'], tempDir, "npm hadn't installed")
-    execOrFail((String[]) ['npm', 'run', 'webpack'], tempDir, "webpack failed")
-
     copy {
-        from new File(tempDir, 'static')
+        from new File(projectDir, 'frontend/static')
         into resourcesDir
     }
 }
@@ -84,7 +78,6 @@ copyDeps.mustRunAfter clean
 jar {
     manifest {
         attributes(
-            //'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
             'Main-Class': 'ruliov.obliviate.Main'
         )
     }

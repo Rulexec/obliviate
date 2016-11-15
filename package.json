@@ -1,4 +1,26 @@
 {
-  "name": "obliviate-server",
-  "version": "0.0.1"
+  "name": "obliviate",
+  "version": "0.0.1",
+  "description": "",
+  "dependencies": {
+    "webpack": "^1.13.3",
+    "babel-core": "^6.18.2",
+    "babel-loader": "^6.2.7",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-react": "^6.16.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "webpack": "node node_modules/webpack/bin/webpack.js",
+    "postinstall": "npm run webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rulexec/obliviate.git"
+  },
+  "author": "Alexander Ruliov <alexander.ruliov@gmail.com>",
+  "bugs": {
+    "url": "https://github.com/Rulexec/obliviate/issues"
+  },
+  "homepage": "https://github.com/Rulexec/obliviate#readme"
 }

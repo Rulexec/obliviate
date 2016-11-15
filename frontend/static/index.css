@@ -1,0 +1,104 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+#loading {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@keyframes rotation {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+#loading-spinner {
+  outline: 1px solid transparent; /* for force antialiasing */
+  animation: rotation 2s linear infinite;
+}
+
+#container > .game {
+  width: 50%;
+  margin: 3em auto 0 auto;
+}
+
+#container > .game > .word-box {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 2.5em;
+
+  color: white;
+  font-size: 4em;
+
+  /*background: url('images/seamless_paper_texture.png');*/
+  background: #ccc;
+
+  border-radius: 0.5em;
+  /*box-shadow: 0 4px 0 0 #ccc;*/
+}
+
+#container > .game > .word-box > span {
+  padding-bottom: 0.15em;
+  color: white;
+  /*text-shadow: #666 0 0 8px;*/
+}
+
+#container > .game > .choices {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+#container > .game > .choices > .choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 47.5%;
+  height: 5em;
+  font-size: 1em;
+  margin-top: 1em;
+
+  border: 1px solid #aaa;
+  border-radius: 0.5em;
+
+  cursor: pointer;
+}
+#container > .game > .choices > .choice.disabled {
+  cursor: default;
+}
+#container > .game > .choices > .choice:hover.disabled {
+  background: white;
+}
+#container > .game > .choices > .choice.correct {
+  background: #afa;
+}
+#container > .game > .choices > .choice.correct:hover {
+  background: #afa;
+}
+#container > .game > .choices > .choice.incorrect {
+  background: #faa;
+}
+#container > .game > .choices > .choice.incorrect:hover {
+  background: #faa;
+}
+#container > .game > .choices > .choice:hover {
+  background: #f6f6f6;
+}
+#container > .game > .choices > .choice > span {
+  padding-bottom: 0.15em;
+}
+
+#container > .game > .choices > .choice.blink {
+  animation: blink 0.5s steps(2, end) 0s infinite;
+}
+@keyframes blink {
+  to { background: #aaa; }
+}
