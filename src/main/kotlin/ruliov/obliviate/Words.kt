@@ -49,7 +49,30 @@ object Words {
         Pair("affectionate", "любящий"),
         Pair("elude", "ускользать"),
         Pair("effusively", "экспансивно"),
-        Pair("entwined", "переплетены")
+        Pair("entwined", "переплетены"),
+        Pair("fright", "испуг"),
+        Pair("chase", "гнаться / преследовать"),
+        Pair("carriage", "вагон / экипаж"),
+        Pair("contrary", "противоположность"),
+        Pair("peppermint", "мятный"),
+        Pair("fair", "справедливый"),
+        Pair("mild", "мягкий / умеренный"),
+        Pair("affront", "оскорбление"),
+        Pair("desperate", "отчаянный"),
+        Pair("heir", "наследник"),
+        Pair("fierce", "свирепый / лютый"),
+        Pair("quite", "довольно / вполне"),
+        Pair("twist", "поворот / кручение"),
+        Pair("bit", "немного / кусочек"),
+        Pair("delight", "восторг / наслаждение"),
+        Pair("discombobulate", "смущать/сбивать с толку"),
+        Pair("amuse", "забавлять / развлекать"),
+        Pair("proffer", "предложение / сделка"),
+        Pair("dithering", "дрожать / трепетать"),
+        Pair("concern", "забота / интерес"),
+        Pair("relentless", "безжалостный / неумолимый"),
+        Pair("pretense", "притворство"),
+        Pair("melting", "плавление / таяние")
     )
 
     fun getRandomWordWith4RandomTranslations(): WordWith4TranslationVariants {
