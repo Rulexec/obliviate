@@ -62,7 +62,7 @@ fun main(args: Array<String>) {
 
         val classLoader = ClassLoader.getSystemClassLoader()
 
-        val loader: (String) -> InputStream = if (System.getenv("LOCAL") != null)
+        val loader: (String) -> InputStream = if (System.getenv("LOCAL") == null)
             { s -> classLoader.getResourceAsStream("static" + s) } else
             { s -> File("/home/ruliov/projects/obliviate/frontend/static" + s).inputStream() }
 
