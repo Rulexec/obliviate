@@ -62,6 +62,7 @@ function start() {
           switch (menuItem) {
           case 'home':
             document.getElementById('loading').style.display = 'flex';
+            ReactDOM.render(React.createElement('noscript'), containerEl)
             gameFlow(flowOptions);
             break;
           case 'edit':
