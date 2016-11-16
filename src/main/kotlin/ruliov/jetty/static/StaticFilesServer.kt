@@ -20,7 +20,7 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
             when (extension) {
                 "png" -> request.response.setHeader("Content-Type", "image/png")
                 "ico" -> request.response.setHeader("Content-Type", "image/x-icon")
-                "css" -> request.response.setHeader("Content-Type", "text/css")
+                "css","less" -> request.response.setHeader("Content-Type", "text/css")
                 "html" -> request.response.setHeader("Content-Type", "text/html")
                 "js" -> request.response.setHeader("Content-Type", "text/javascript")
             }
