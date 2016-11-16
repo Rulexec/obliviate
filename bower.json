@@ -1,0 +1,13 @@
+{
+  "name": "obliviate",
+  "description": "",
+  "main": "",
+  "authors": [
+    "Alexander Ruliov <alexander.ruliov@gmail.com>"
+  ],
+  "homepage": "https://github.com/Rulexec/obliviate",
+  "private": true,
+  "dependencies": {
+    "semantic": "semantic-ui#^2.2.6"
+  }
+}

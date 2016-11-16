@@ -1,5 +1,6 @@
 @import 'header';
 @import 'edit';
+@import 'misc';
 
 * {
   margin: 0;
@@ -9,31 +10,40 @@
 #container > .game {
   width: 50%;
   margin: 3em auto 0 auto;
-}
 
-#container > .game > .word-box {
-  display: flex;
+  > .word-box {
+    width: 100%;
+    text-align: center;
 
-  align-items: center;
-  justify-content: center;
+    > span {
+      display: inline-block;
+      font-size: 3em;
+      padding: 0.5em;
+    }
+  }
 
-  width: 100%;
-  height: 2.5em;
+  > .choices {
+    > .row {
+      display: flex;
+      width: 100%;
 
-  color: white;
-  font-size: 4em;
+      margin-bottom: 1em;
 
-  /*background: url('images/seamless_paper_texture.png');*/
-  background: #ccc;
+      > .choice {
+        flex-grow: 1;
 
-  border-radius: 0.5em;
-  /*box-shadow: 0 4px 0 0 #ccc;*/
-}
+        &:first-child {
+          margin-right: 1em;
+        }
 
-#container > .game > .word-box > span {
-  padding-bottom: 0.15em;
-  color: white;
-  /*text-shadow: #666 0 0 8px;*/
+        &.disabled {
+          &.green,&.red {
+            opacity: 1 !important;
+          }
+        }
+      }
+    }
+  }
 }
 
 #container > .game > .choices {
@@ -41,51 +51,4 @@
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: space-between;
-}
-
-#container > .game > .choices > .choice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 47.5%;
-  height: 5em;
-  font-size: 1em;
-  margin-top: 1em;
-
-  border: 1px solid #aaa;
-  border-radius: 0.5em;
-
-  cursor: pointer;
-}
-#container > .game > .choices > .choice.disabled {
-  cursor: default;
-}
-#container > .game > .choices > .choice:hover.disabled {
-  background: white;
-}
-#container > .game > .choices > .choice.correct {
-  background: #afa;
-}
-#container > .game > .choices > .choice.correct:hover {
-  background: #afa;
-}
-#container > .game > .choices > .choice.incorrect {
-  background: #faa;
-}
-#container > .game > .choices > .choice.incorrect:hover {
-  background: #faa;
-}
-#container > .game > .choices > .choice:hover {
-  background: #f6f6f6;
-}
-#container > .game > .choices > .choice > span {
-  padding-bottom: 0.15em;
-}
-
-#container > .game > .choices > .choice.blink {
-  animation: blink 0.5s steps(2, end) 0s infinite;
-}
-@keyframes blink {
-  to { background: #aaa; }
 }

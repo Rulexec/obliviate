@@ -3,7 +3,7 @@ let DataProvider = require('./dataProvider').DataProvider,
     Header = require('./header.jsx').Header,
     Game = require('./game.jsx').Game,
 
-    Edit = require('./edit.jsx').Edit;
+    NotImplemented = require('./notImplemented.jsx').NotImplemented;
 
 let dataProvider = new DataProvider();
 
@@ -20,23 +20,22 @@ function start() {
   var unmountHandler = unmount => unmount();
 
   let headerButtonsState = {
-    homeIsEnabled: false,
-    editIsEnabled: true
+    menuItemIsEnabled: {},
+    menuItemIsActive: {}
   };
+  const MENU_ITEMS = ['home', 'stats', 'duel', 'edit'];
+  function chooseMenuItem(item) {
+    MENU_ITEMS.forEach(x => {
+      headerButtonsState.menuItemIsEnabled[x] = true;
+      headerButtonsState.menuItemIsActive[x] = false;
+    });
+    headerButtonsState.menuItemIsEnabled[item] = false;
+    headerButtonsState.menuItemIsActive[item] = true;
+  }
+  chooseMenuItem('home');
 
   let flowOptions = {
     events: events,
-
-    header: {
-      enableHomeButton(flag) {
-        headerButtonsState.homeIsEnabled = flag;
-        renderHeader();
-      },
-      enableEditButton(flag) {
-        headerButtonsState.editIsEnabled = flag;
-        renderHeader();
-      }
-    },
 
     setUnmountHandler: handler => {
       unmountHandler = unmount => {
@@ -56,16 +55,24 @@ function start() {
     props || (props = {});
 
     let defaultProps = {
-      onHome: () => {
+      onMenuItemSelected: menuItem => {
         unmountHandler(() => {
-          flowOptions.header.enableHomeButton(false);
-          document.getElementById('loading').style.display = 'block';
-          gameFlow(flowOptions);
-        });
-      },
-      onEdit: () => {
-        unmountHandler(() => {
-          editFlow(flowOptions)
+          chooseMenuItem(menuItem); renderHeader();
+
+          switch (menuItem) {
+          case 'home':
+            document.getElementById('loading').style.display = 'flex';
+            gameFlow(flowOptions);
+            break;
+          case 'edit':
+            editFlow(flowOptions)
+            break;
+          case 'stats':
+          case 'duel':
+            flowOptions.render(NotImplemented, {});
+            break;
+          default: throw 'unknown menu item: ' + menuItem
+          }
         });
       }
     };
@@ -121,15 +128,7 @@ function gameFlow(options) {
 }
 
 function editFlow(options) {
-  let render = options.render.bind(options, Edit);
-
-  options.header.enableHomeButton(true);
-  options.header.enableEditButton(false);
-  options.setUnmountHandler(unmount => {
-    console.log('unmounting');
-    options.header.enableEditButton(true);
-    unmount();
-  });
+  let render = options.render.bind(options, NotImplemented);
 
   render({});
 }

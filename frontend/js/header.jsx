@@ -2,13 +2,23 @@ let memoBind = require('./util').memoBind;
 
 class Header extends React.Component {
   render() {
+    let self = this;
+
+    function createItem([id, text]) {
+      return <a key={id}
+                className={'item' + (self.props.menuItemIsEnabled[id] ? '' : ' disabled') +
+                                    (self.props.menuItemIsActive[id] ? ' active' : '')}
+                onClick={self.props.menuItemIsEnabled[id] ? self.props.onMenuItemSelected.bind(null, id) : null}>{text}</a>
+    }
+
+    let leftItems = [['home', 'Play'], ['stats', 'Stats'], ['duel', 'Duel']].map(createItem),
+        rightItems = [['edit', 'Edit']].map(createItem);
+
     return (
-      <div className='header'>
-        <div className={'logo' + (this.props.homeIsEnabled ? '' : ' disabled')}
-             onClick={this.props.homeIsEnabled ? this.props.onHome.bind(this.props) : null}>Obliviate</div>
-        <div className='sections'>
-          <a className={this.props.editIsEnabled ? '' : 'disabled'}
-          onClick={this.props.editIsEnabled ? this.props.onEdit.bind(this.props) : null}>Edit</a>
+      <div className='header-component ui secondary pointing menu'>
+        {leftItems}
+        <div className='right menu'>
+          {rightItems}
         </div>
       </div>
     );

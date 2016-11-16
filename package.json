@@ -3,19 +3,24 @@
   "version": "0.0.1",
   "description": "",
   "dependencies": {
-    "webpack": "^1.13.3",
     "babel-core": "^6.18.2",
     "babel-loader": "^6.2.7",
     "babel-preset-es2015": "^6.18.0",
-    "babel-preset-react": "^6.16.0"
+    "babel-preset-react": "^6.16.0",
+    "bower": "^1.8.0",
+    "css-loader": "^0.25.0",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.3"
   },
   "devDependencies": {
     "nodemon": "^1.11.0"
   },
   "scripts": {
+    "bower": "node_modules/bower/bin/bower install",
     "webpack": "node node_modules/webpack/bin/webpack.js",
-    "postinstall": "npm run webpack",
-    "nodemon": "node node_modules/nodemon/bin/nodemon.js -i frontend/static/bundle.js -w frontend -e js,jsx -x node node_modules/webpack/bin/webpack.js"
+    "postinstall": "npm run bower && npm run webpack",
+    "nodemon": "node node_modules/nodemon/bin/nodemon.js -i frontend/static/bundle.js,frontend/static/vendor.bundle.js -w frontend -e js,jsx -x node node_modules/webpack/bin/webpack.js"
   },
   "repository": {
     "type": "git",

@@ -7,10 +7,9 @@ class Choice extends React.Component {
 
   render() {
     return (
-      <div className={'choice' +
-                      (this.props.isBlinking ? ' blink' : '') +
+      <div className={'choice ui basic button' +
                       (this.props.isDisabled ? ' disabled' : '') +
-                      (this.props.isCorrect ? ' correct' : this.props.isIncorrect ? ' incorrect' : '')}
+                      (this.props.isCorrect ? ' green' : this.props.isIncorrect ? ' red' : '')}
            onClick={this.props.isDisabled ? null : this.choose.bind(this)}>
         <span>{this.props.value}</span>
       </div>
@@ -62,9 +61,10 @@ class Game extends React.Component {
 
     return (
       <div className='game'>
-        <div className='word-box'><span>{this.props.word.word}</span></div>
+        <div className='word-box ui message'><span>{this.props.word.word}</span></div>
         <div className='choices'>
-          {choices}
+          <div className='row'>{choices[0]}{choices[1]}</div>
+          <div className='row'>{choices[2]}{choices[3]}</div>
         </div>
       </div>
     );

@@ -3,4 +3,5 @@
 /build
 /src/main/resources/static
 /node_modules
+/bower_components
 /npm-debug.log
