@@ -13,14 +13,15 @@ import ruliov.jetty.JettyServer
 import ruliov.jetty.static.StaticFilesServer
 import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toJSON
+import ruliov.toJDBCUrl
 import java.io.File
 import java.io.InputStream
 import java.util.regex.Pattern
 
 fun main(args: Array<String>) {
     val DATABASE_URL =
-            System.getenv("DATABASE_URL") ?:
-            "postgresql://localhost:5432/obliviate?user=ruliov&password=ruliov"
+            toJDBCUrl(System.getenv("DATABASE_URL") ?:
+            "postgres://ruliov:ruliov@localhost:5432/obliviate")
 
     val database = Database(
         "org.postgresql.Driver",
