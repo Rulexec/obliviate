@@ -2,6 +2,10 @@
   "name": "obliviate",
   "version": "0.0.1",
   "description": "",
+  "engines": {
+    "node": "7.1.x",
+    "npm": "3.10.x"
+  },
   "dependencies": {
     "babel-core": "^6.18.2",
     "babel-loader": "^6.2.7",
