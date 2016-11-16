@@ -75,7 +75,7 @@ task buildFrontend << {
 task stage(dependsOn: ['build', 'clean', 'copyDeps', 'buildFrontend'])
 build.mustRunAfter(clean, buildFrontend)
 buildFrontend.mustRunAfter clean
-copyDeps.mustRunAfter clean
+copyDeps.mustRunAfter build
 
 jar {
     manifest {
