@@ -9,7 +9,9 @@ class Choice extends React.Component {
     return (
       <div className={'choice ui basic button' +
                       (this.props.isDisabled ? ' disabled' : '') +
-                      (this.props.isCorrect ? ' green' : this.props.isIncorrect ? ' red' : '')}
+                      (this.props.isCorrect ? ' green' :
+                          this.props.isIncorrect ? ' red' :
+                              this.props.isChoice ? ' grey' : '')}
            onClick={this.props.isDisabled ? null : this.choose.bind(this)}>
         <span>{this.props.value}</span>
       </div>
@@ -52,8 +54,8 @@ class Game extends React.Component {
       let choice =
         <Choice {...this.props.word.choices[i]} key={i}
                 isDisabled={this.props.isDisabled}
-                isBlinking={!this.props.isShowingResult && this.props.choice === i}
-                isCorrect={this.props.correctChoice === i}
+                isChoice={i === this.props.choice}
+                isCorrect={i === this.props.correctChoice}
                 isIncorrect={this.props.isShowingResult && this.props.choice === i && this.props.choice !== this.props.correctChoice}
                 onChoose={memoBind(this, 'choose' + i, this.choose, this, i)} />;
       choices.push(choice);

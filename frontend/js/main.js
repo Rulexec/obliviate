@@ -88,6 +88,14 @@ function gameFlow(options) {
   let render = options.render.bind(options, Game);
 
   function onChoose(data, choice) {
+    render({
+      isShowingResult: false,
+      isWaitingForResult: true,
+      isDisabled: true,
+      choice: choice,
+      word: data
+    })
+
     dataProvider.checkWordAndGetNextRandomWord(data.wordId, data.choices[choice].id).then(newData => {
       let correctChoice;
       data.choices.some(({id}, i) => {
@@ -97,6 +105,7 @@ function gameFlow(options) {
 
       render({
         isShowingResult: true,
+        isWaitingForResult: false,
         isDisabled: true,
         choice: choice,
         correctChoice: correctChoice,
@@ -104,6 +113,7 @@ function gameFlow(options) {
         onChoose: null,
         onNextWord: render.bind(null, {
           isShowingResult: false,
+          isWaitingForResult: false,
           isDisabled: false,
           choice: null,
           correctChoice: null,
