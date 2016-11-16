@@ -1,8 +1,10 @@
 let DataProvider = require('./dataProvider').DataProvider,
 
+    Router = require('./router').Router,
+
     Header = require('./header.jsx').Header,
     Game = require('./game.jsx').Game,
-
+    Edit = require('./edit.jsx').Edit,
     NotImplemented = require('./notImplemented.jsx').NotImplemented;
 
 let dataProvider = new DataProvider();
@@ -47,9 +49,32 @@ function start() {
     render: (component, props) => ReactDOM.render(React.createElement(component, props), containerEl)
   };
 
-  renderHeader();
-  
-  gameFlow(flowOptions);
+  let router = new Router();
+  router.addRoutes({
+    ['']() { unmountHandler(() => {
+      chooseMenuItem('home'); renderHeader();
+
+      ReactDOM.render(React.createElement('noscript'), containerEl)
+      gameFlow(flowOptions);
+    }) }, edit() { unmountHandler(() => {
+      chooseMenuItem('edit'); renderHeader();
+
+      flowOptions.render(NotImplemented, {});
+      //editFlow(flowOptions)
+    }) }, stats() { unmountHandler(() => {
+      chooseMenuItem('stats'); renderHeader();
+      flowOptions.render(NotImplemented, {});
+    }) }, duel() { unmountHandler(() => {
+      chooseMenuItem('duel'); renderHeader();
+      flowOptions.render(NotImplemented, {});
+    }) }
+  });
+  router.setDefaultRoute('');
+
+  //renderHeader();
+  //gameFlow(flowOptions);
+  document.getElementById('loading').style.display = 'none';
+  router.start();
 
   function renderHeader(props) {
     props || (props = {});
@@ -57,20 +82,14 @@ function start() {
     let defaultProps = {
       onMenuItemSelected: menuItem => {
         unmountHandler(() => {
-          chooseMenuItem(menuItem); renderHeader();
-
           switch (menuItem) {
           case 'home':
-            document.getElementById('loading').style.display = 'flex';
-            ReactDOM.render(React.createElement('noscript'), containerEl)
-            gameFlow(flowOptions);
+            router.go('');
             break;
           case 'edit':
-            editFlow(flowOptions)
-            break;
           case 'stats':
           case 'duel':
-            flowOptions.render(NotImplemented, {});
+            router.go(menuItem);
             break;
           default: throw 'unknown menu item: ' + menuItem
           }
@@ -125,8 +144,6 @@ function gameFlow(options) {
   }
 
   dataProvider.getRandomWord().then(data => {
-    document.getElementById('loading').style.display = 'none';
-
     render({
       isShowingResult: false,
       isDisabled: false,
@@ -139,7 +156,7 @@ function gameFlow(options) {
 }
 
 function editFlow(options) {
-  let render = options.render.bind(options, NotImplemented);
+  let render = options.render.bind(options, Edit);
 
   render({});
 }
