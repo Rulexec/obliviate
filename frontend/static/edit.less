@@ -1,3 +1,16 @@
 #container > .edit-component {
-  margin-top: 2em;
+  width: 50%;
+  margin: 2em auto 0 auto;
+
+  .row {
+    display: flex;
+
+    > *:not(:first-child) {
+      margin-left: 1em;
+    }
+
+    &:not(:first-child) {
+      margin-top: 1.5em;
+    }
+  }
 }

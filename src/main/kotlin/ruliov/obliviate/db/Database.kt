@@ -57,6 +57,10 @@ class Database(jdbcDriver: String, dbUrl: String) {
         } } }
     }
 
+    fun getAllWords(): List<WordWithTranslation> {
+        return this.wordsWithTranslations
+    }
+
     fun getRandomWordWith4RandomTranslations(): WordWith4TranslationVariants {
         val wordId = this.random.nextInt(this.wordsWithTranslations.size)
         val wordWithTranslation = this.wordsWithTranslations[wordId]

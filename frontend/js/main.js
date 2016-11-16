@@ -59,8 +59,7 @@ function start() {
     }) }, edit() { unmountHandler(() => {
       chooseMenuItem('edit'); renderHeader();
 
-      flowOptions.render(NotImplemented, {});
-      //editFlow(flowOptions)
+      editFlow(flowOptions)
     }) }, stats() { unmountHandler(() => {
       chooseMenuItem('stats'); renderHeader();
       flowOptions.render(NotImplemented, {});
@@ -158,5 +157,13 @@ function gameFlow(options) {
 function editFlow(options) {
   let render = options.render.bind(options, Edit);
 
-  render({});
+  render({
+    isLoading: true
+  });
+
+  dataProvider.getAllWordsWithTranslations().then(words => {
+    render({
+      words: words
+    });
+  });
 }

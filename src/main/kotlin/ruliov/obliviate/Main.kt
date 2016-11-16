@@ -12,6 +12,7 @@ import ruliov.jetty.IHTTPMiddleware
 import ruliov.jetty.JettyServer
 import ruliov.jetty.static.StaticFilesServer
 import ruliov.obliviate.db.Database
+import ruliov.obliviate.json.toCompactJSON
 import ruliov.obliviate.json.toJSON
 import ruliov.toJDBCUrl
 import java.io.File
@@ -31,6 +32,19 @@ fun main(args: Array<String>) {
     database.loadData().bindErrorFuture { catch {
         val router = HTTPRouter()
 
+        router.addRoute("GET", "/words/", object : IHTTPController {
+            override fun handle(request: Request, groups: Array<String>?) {
+                val response = request.response
+                response.setHeader("Content-Type", "application/json; charset=utf-8")
+
+                val words = database.getAllWords()
+
+                request.response.writer.write(words.toCompactJSON())
+                /*val word = database.getRandomWordWith4RandomTranslations()
+
+                request.response.writer.write(word.toJSON())*/
+            }
+        })
         router.addRoute("GET", "/words/random", object : IHTTPController {
             override fun handle(request: Request, groups: Array<String>?) {
                 val response = request.response

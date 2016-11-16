@@ -13,6 +13,14 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
             return
         }
 
+        if (request.getHeader("If-None-Match")?.equals("cached") ?: false) {
+            if (System.getenv("LOCAL") == null || !request.requestURI.equals("/bundle.js")) {
+                request.response.setStatusWithReason(304, "Not Modified")
+                request.response.closeOutput()
+                return
+            }
+        }
+
         val lastDotPos = request.requestURI.lastIndexOf('.')
         if (lastDotPos != -1) {
             val extension = request.requestURI.substring(lastDotPos + 1)
@@ -25,6 +33,9 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
                 "js" -> request.response.setHeader("Content-Type", "text/javascript")
             }
         }
+
+        request.response.setHeader("Cache-Control", "public, must-revalidate")
+        request.response.setHeader("ETag", "cached")
 
         val outputStream = request.response.outputStream
 

@@ -12,6 +12,12 @@ function DataProvider(options) {
     });
   };
 
+  this.getAllWordsWithTranslations = function() {
+    return fetchJSON('words/').then(data => {
+      return data.map(([id, word, translation]) => {return {id, word, translation}});
+    });
+  };
+
   function fetchJSON() {
     return fetch.apply(null, arguments).then(response => {
       if (response.status === 200) {
