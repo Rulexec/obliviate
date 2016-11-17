@@ -120,6 +120,11 @@ class Database(jdbcDriver: String, dbUrl: String) {
 
             do {
                 rand = this.random.nextInt(this.wordsWithTranslations.size)
+
+                if (this.wordsWithTranslations.size < 4) {
+                    // FIXME: just quickfix to prevent endless loop
+                    throw Exception("It's a trap!")
+                }
             } while (rand in usedVariants)
 
             usedVariants.add(rand)
