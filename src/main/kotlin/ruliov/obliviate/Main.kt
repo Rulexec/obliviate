@@ -6,10 +6,7 @@ import org.eclipse.jetty.server.Request
 import ruliov.async.bindErrorFuture
 import ruliov.async.catch
 import ruliov.async.createFuture
-import ruliov.jetty.HTTPRouter
-import ruliov.jetty.IHTTPController
-import ruliov.jetty.IHTTPMiddleware
-import ruliov.jetty.JettyServer
+import ruliov.jetty.*
 import ruliov.jetty.static.StaticFilesServer
 import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toCompactJSON
@@ -32,47 +29,28 @@ fun main(args: Array<String>) {
     database.loadData().bindErrorFuture { catch {
         val router = HTTPRouter()
 
-        router.addRoute("GET", "/words/", object : IHTTPController {
-            override fun handle(request: Request, groups: Array<String>?) {
-                val response = request.response
-                response.setHeader("Content-Type", "application/json; charset=utf-8")
+        router.addRoute("GET", "/words/", createController { request, groups ->
+            val words = database.getAllWords()
 
-                val words = database.getAllWords()
+            request.response.writer.write(words.toCompactJSON())
+        }.respondsJSON())
 
-                request.response.writer.write(words.toCompactJSON())
-                /*val word = database.getRandomWordWith4RandomTranslations()
+        router.addRoute("GET", "/words/random", createController { request, strings ->
+            val word = database.getRandomWordWith4RandomTranslations()
 
-                request.response.writer.write(word.toJSON())*/
-            }
-        })
-        router.addRoute("GET", "/words/random", object : IHTTPController {
-            override fun handle(request: Request, groups: Array<String>?) {
-                val response = request.response
+            request.response.writer.write(word.toJSON())
+        }.dontCaches().respondsJSON())
 
-                response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate")
-                response.setHeader("Pragma", "no-cache")
-                response.setHeader("Expires", "0")
-                response.setHeader("Content-Type", "application/json; charset=utf-8")
+        router.addRoute("POST", Pattern.compile("^/words/check/(\\d+)$"), createController { request, groups ->
+            groups ?: throw IllegalStateException()
 
-                val word = database.getRandomWordWith4RandomTranslations()
+            val wordId = groups[0].toLong()
+            val translationIdJSON = database.getWordTranslationId(wordId)?.let { "\"$it\"" } ?: "null"
 
-                request.response.writer.write(word.toJSON())
-            }
-        })
-        router.addRoute("POST", Pattern.compile("^/words/check/(\\d+)$"), object : IHTTPController {
-            override fun handle(request: Request, groups: Array<String>?) {
-                groups ?: throw IllegalStateException()
-                val response = request.response
-                response.setHeader("Content-Type", "application/json; charset=utf-8")
+            val nextWordJSON = database.getRandomWordWith4RandomTranslations().toJSON()
 
-                val wordId = groups[0].toLong()
-                val translationIdJSON = database.getWordTranslationId(wordId)?.let { "\"$it\"" } ?: "null"
-
-                val nextWordJSON = database.getRandomWordWith4RandomTranslations().toJSON()
-
-                request.response.writer.write("{\"correct\":$translationIdJSON,\"word\":$nextWordJSON}")
-            }
-        })
+            request.response.writer.write("{\"correct\":$translationIdJSON,\"word\":$nextWordJSON}")
+        }.respondsJSON())
 
         val classLoader = ClassLoader.getSystemClassLoader()
 
