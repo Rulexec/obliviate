@@ -7,6 +7,7 @@ import ruliov.async.createFuture
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
 import ruliov.toHexString
+import java.sql.Connection
 import java.util.*
 
 class Database(jdbcDriver: String, dbUrl: String) {
@@ -20,6 +21,10 @@ class Database(jdbcDriver: String, dbUrl: String) {
         Class.forName(jdbcDriver)
 
         this.pool = DBConnectionPool(1, dbUrl)
+    }
+
+    private fun getConnectionAndCatch(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {
+        return this.pool.getConnection().bindToErrorFuture { catch { it.use { handler(it.getConnection()) } } }
     }
 
     fun loadData(): IFuture<Any?> {
@@ -55,6 +60,42 @@ class Database(jdbcDriver: String, dbUrl: String) {
 
             createFuture<Any?>(null)
         } } }
+    }
+
+    fun resetDb(): IFuture<Any?> = this.getConnectionAndCatch {
+        val statement = it.createStatement()
+        statement.execute(RESET_DB_SQL)
+
+        createFuture<Any?>(null)
+    }
+
+    fun deleteWord(id: Long): IFuture<Any?> = this.getConnectionAndCatch {
+        val ps = it.prepareCall(
+            "WITH removedWord AS (DELETE FROM words WHERE id = ? RETURNING \"translationId\" AS tid)" +
+            "DELETE FROM translations WHERE id IN (SELECT tid FROM removedWord)")
+        ps.setLong(1, id)
+
+        val rows = ps.executeUpdate()
+
+        if (rows == 1) {
+            // maybe we need to switch to trees, but not now
+            // also, we can use binary search, if we will fetch sorted words from db
+            var i = 0
+            for (word in this.wordsWithTranslations) {
+                if (word.wordId == id) {
+                    this.wordsWithTranslations.removeAt(i)
+                    this.wordById.remove(id)
+
+                    break
+                }
+
+                i++
+            }
+
+            createFuture<Any?>(null)
+        } else {
+            createFuture("Nothing deleted: $rows")
+        }
     }
 
     fun getAllWords(): List<WordWithTranslation> {

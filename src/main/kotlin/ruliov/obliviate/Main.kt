@@ -7,7 +7,9 @@ import ruliov.async.bindErrorFuture
 import ruliov.async.catch
 import ruliov.async.createFuture
 import ruliov.jetty.*
+import ruliov.jetty.static.DevelopmentStaticFilesServer
 import ruliov.jetty.static.StaticFilesServer
+import ruliov.obliviate.controllers.*
 import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toCompactJSON
 import ruliov.obliviate.json.toJSON
@@ -15,6 +17,9 @@ import ruliov.toJDBCUrl
 import java.io.File
 import java.io.InputStream
 import java.util.regex.Pattern
+
+val LOCAL: Boolean = System.getenv("LOCAL") != null
+val PRODUCTION: Boolean = !LOCAL
 
 fun main(args: Array<String>) {
     val DATABASE_URL =
@@ -29,44 +34,29 @@ fun main(args: Array<String>) {
     database.loadData().bindErrorFuture { catch {
         val router = HTTPRouter()
 
-        router.addRoute("GET", "/words/", createController { request, groups ->
-            val words = database.getAllWords()
+        router.addRoute("GET", "/words/", getAllWordsController(database))
+        router.addRoute("DELETE",
+                Pattern.compile("^/words/(\\d+)$"),
+                deleteWordController(database))
 
-            request.response.writer.write(words.toCompactJSON())
-        }.respondsJSON())
+        router.addRoute("GET", "/words/random", getRandomWordController(database))
+        router.addRoute("POST",
+                Pattern.compile("^/words/check/(\\d+)$"),
+                checkAndGetNextWordController(database))
 
-        router.addRoute("GET", "/words/random", createController { request, strings ->
-            val word = database.getRandomWordWith4RandomTranslations()
 
-            request.response.writer.write(word.toJSON())
-        }.dontCaches().respondsJSON())
-
-        router.addRoute("POST", Pattern.compile("^/words/check/(\\d+)$"), createController { request, groups ->
-            groups ?: throw IllegalStateException()
-
-            val wordId = groups[0].toLong()
-            val translationIdJSON = database.getWordTranslationId(wordId)?.let { "\"$it\"" } ?: "null"
-
-            val nextWordJSON = database.getRandomWordWith4RandomTranslations().toJSON()
-
-            request.response.writer.write("{\"correct\":$translationIdJSON,\"word\":$nextWordJSON}")
-        }.respondsJSON())
+        router.addRoute("GET", "/admin/resetdb", resetDbController(database))
 
         val classLoader = ClassLoader.getSystemClassLoader()
 
-        val loader: (String) -> InputStream = if (System.getenv("LOCAL") == null)
-            { s -> classLoader.getResourceAsStream("static" + s) } else
-            { s -> File("/home/ruliov/projects/obliviate/frontend/static" + s).inputStream() }
-
-        val staticFilesServer = StaticFilesServer({ s ->
-            // TODO: Load whole static frontend into the memory
-
-            var filename = s
-
-            if (filename.equals("/")) filename = "/index.html"
-
-            loader(filename)
-        })
+        val staticFilesServer = if (PRODUCTION)
+            StaticFilesServer({ s ->
+                classLoader.getResourceAsStream("static" + (if (s == "/") "/index.html" else s))
+            }) else
+            DevelopmentStaticFilesServer({ s ->
+                File("/home/ruliov/projects/obliviate/frontend/static" +
+                        (if (s == "/") "/index.html" else s)).inputStream()
+            })
 
         val handler = object : IHTTPMiddleware {
             override fun handle(request: Request, next: () -> Unit) {

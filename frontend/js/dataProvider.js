@@ -18,6 +18,10 @@ function DataProvider(options) {
     });
   };
 
+  this.deleteWord = function(id) {
+    return fetchJSON('words/' + id, { method: 'DELETE' });
+  }
+
   function fetchJSON() {
     return fetch.apply(null, arguments).then(response => {
       if (response.status === 200) {

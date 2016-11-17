@@ -30,25 +30,12 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
         }
 
         if (request.getHeader("If-None-Match")?.equals(this.cacheETag) ?: false) {
-            if (System.getenv("LOCAL") == null || !request.requestURI.equals("/bundle.js")) {
-                request.response.setStatusWithReason(304, "Not Modified")
-                request.response.closeOutput()
-                return
-            }
+            request.response.setStatusWithReason(304, "Not Modified")
+            request.response.closeOutput()
+            return
         }
 
-        val lastDotPos = request.requestURI.lastIndexOf('.')
-        if (lastDotPos != -1) {
-            val extension = request.requestURI.substring(lastDotPos + 1)
-
-            when (extension) {
-                "png" -> request.response.setHeader("Content-Type", "image/png")
-                "ico" -> request.response.setHeader("Content-Type", "image/x-icon")
-                "css","less" -> request.response.setHeader("Content-Type", "text/css")
-                "html" -> request.response.setHeader("Content-Type", "text/html")
-                "js" -> request.response.setHeader("Content-Type", "text/javascript")
-            }
-        }
+        addMimeTypeHeaderByUrl(request)
 
         request.response.setHeader("Cache-Control", "public, must-revalidate")
         request.response.setHeader("ETag", this.cacheETag)

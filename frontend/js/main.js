@@ -163,7 +163,10 @@ function editFlow(options) {
 
   dataProvider.getAllWordsWithTranslations().then(words => {
     render({
-      words: words
+      words: words,
+      onDelete: word => {
+        dataProvider.deleteWord(word.id).then(() => word.onDeleted())
+      }
     });
   });
 }

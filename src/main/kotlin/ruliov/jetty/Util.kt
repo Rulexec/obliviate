@@ -8,6 +8,13 @@ fun createController(handler: (request: Request, groups: Array<String>?) -> Unit
     }
 }
 
+fun createControllerRespondsJSON(handler: (request: Request, groups: Array<String>?) -> Unit): IHTTPController
+    = createController(handler).respondsJSON()
+
+fun createControllerRespondsJSONDontCaches(
+        handler: (request: Request, groups: Array<String>?) -> Unit): IHTTPController
+    = createController(handler).dontCaches().respondsJSON()
+
 fun IHTTPController.respondsJSON(): IHTTPController {
     return createController { request, strings ->
         request.response.setHeader("Content-Type", "application/json; charset=utf-8")
