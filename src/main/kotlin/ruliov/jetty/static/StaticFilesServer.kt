@@ -80,7 +80,7 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
                 n = inputStream.read(buffer, bufferPos, BUFFER_SIZE - bufferPos)
                 if (n <= -1) break
 
-                outputStream.write(buffer, 0, n)
+                outputStream.write(buffer, bufferPos, n)
 
                 totalSize += n
                 bufferPos += n
