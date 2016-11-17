@@ -31,7 +31,7 @@ class EditWord extends React.Component {
       <div className={'row ui input' + (this.state.isDeleted ? ' hide' : '')}>
         <input type='text' value={$.word} placeholder='word' maxLength='24' readOnly />
         <input type='text' value={$.translation} placeholder='translation' maxLength='24' readOnly />
-        <button className={'ui button' + (isDisabled ? ' disabled' : '')}>{$.saveButtonText || 'Save'}</button>
+        <button className='ui button disabled'>{$.saveButtonText || 'Save'}</button>
         {this.props.withoutDelete ? null :
           <button className={'ui basic button' + (isDisabled ? ' disabled' : '')}
                   onClick={isDisabled || !$.onDelete ? null : this.onDelete.bind(this)}><i className='fa fa-trash'></i></button>}
