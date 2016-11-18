@@ -38,6 +38,7 @@ fun main(args: Array<String>) {
         router.addRoute("DELETE",
                 Pattern.compile("^/words/(\\d+)$"),
                 deleteWordController(database))
+        router.addRoute("POST", Pattern.compile("^/words/(\\d+)$"), updateWordController(database));
 
         router.addRoute("GET", "/words/random", getRandomWordController(database))
         router.addRoute("POST",

@@ -23,15 +23,34 @@ class EditWord extends React.Component {
     });
   }
 
+  onUpdate() {
+    let self = this;
+
+    this.setState({isDisabled: true});
+
+    this.props.onUpdate({
+      id: this.props.id,
+      word: this.getWord(),
+      translation: this.getTranslation(),
+
+      onUpdated() {
+        self.setState({isDisabled: false});
+      }
+    });
+  }
+
   render() {
     let $ = this.props,
-        isDisabled = this.state.isDisabled;
+        isDisabled = !!this.state.isDisabled;
 
     return (
       <div className={'row ui input' + (this.state.isDeleted ? ' hide' : '')}>
-        <input type='text' value={$.word} placeholder='word' maxLength='24' readOnly />
-        <input type='text' value={$.translation} placeholder='translation' maxLength='24' readOnly />
-        <button className='ui button disabled'>{$.saveButtonText || 'Save'}</button>
+        <input type='text' defaultValue={$.word} placeholder='word' maxLength='24'
+               readOnly={ isDisabled } ref={x => this.getWord = () => x.value} />
+        <input type='text' defaultValue={$.translation} placeholder='translation' maxLength='24'
+               readOnly={ isDisabled } ref={x => this.getTranslation = () => x.value} />
+        <button className={'ui button' + (isDisabled ? ' disabled' : '')}
+                onClick={isDisabled || !$.onUpdate ? null : this.onUpdate.bind(this)}>{$.saveButtonText || 'Save'}</button>
         {this.props.withoutDelete ? null :
           <button className={'ui basic button' + (isDisabled ? ' disabled' : '')}
                   onClick={isDisabled || !$.onDelete ? null : this.onDelete.bind(this)}><i className='fa fa-trash'></i></button>}
@@ -42,7 +61,8 @@ class EditWord extends React.Component {
 
 class Edit extends React.Component {
   render() {
-    let onDelete = this.props.onDelete ? memoBind(this, 'onDelete', this.props.onDelete, this.props) : null;
+    let onUpdate = this.props.onUpdate ? memoBind(this, 'onUpdate', this.props.onUpdate, this.props) : null,
+        onDelete = this.props.onDelete ? memoBind(this, 'onDelete', this.props.onDelete, this.props) : null;
 
     return (
       <div className='edit-component'>
@@ -51,7 +71,7 @@ class Edit extends React.Component {
             <p style={{marginTop: '1em'}}>Loading...</p> :
             this.props.words.map(({id, word, translation}) =>
               <EditWord key={id} id={id} word={word} translation={translation}
-                        onDelete={onDelete}/>)
+                        onUpdate={onUpdate} onDelete={onDelete}/>)
         }
       </div>
     );

@@ -70,8 +70,6 @@ function start() {
   });
   router.setDefaultRoute('');
 
-  //renderHeader();
-  //gameFlow(flowOptions);
   document.getElementById('loading').style.display = 'none';
   router.start();
 
@@ -166,6 +164,9 @@ function editFlow(options) {
       words: words,
       onDelete: word => {
         dataProvider.deleteWord(word.id).then(() => word.onDeleted())
+      },
+      onUpdate: word => {
+        dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated());
       }
     });
   });

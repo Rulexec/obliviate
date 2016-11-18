@@ -98,6 +98,36 @@ class Database(jdbcDriver: String, dbUrl: String) {
         }
     }
 
+    fun updateWord(id: Long, wordText: String, translation: String): IFuture<Any?> =
+            this.getConnectionAndCatch {
+        val ps = it.prepareCall(
+            "UPDATE words SET word = ? WHERE id = ?;" +
+            "UPDATE translations SET text = ? FROM words WHERE " +
+                "translations.id = words.\"translationId\" AND words.id = ?;")
+
+        ps.setString(1, wordText)
+        ps.setLong(2, id)
+        ps.setString(3, translation)
+        ps.setLong(4, id)
+
+        val rows = ps.executeUpdate()
+
+        if (rows == 1) {
+            val word = this.wordById[id]
+
+            if (word != null) {
+                word.word = wordText
+                word.translation = translation
+            } else {
+                System.err.println("Word $id not in memory")
+            }
+
+            createFuture<Any?>(null)
+        } else {
+            createFuture("Nothing updated: $rows")
+        }
+    }
+
     fun getAllWords(): List<WordWithTranslation> {
         return this.wordsWithTranslations
     }

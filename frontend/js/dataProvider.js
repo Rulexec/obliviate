@@ -22,6 +22,10 @@ function DataProvider(options) {
     return fetchJSON('words/' + id, { method: 'DELETE' });
   }
 
+  this.updateWord = function(id, word, translation) {
+    return fetchJSON('words/' + id, { method: 'POST', body: JSON.stringify([word, translation]) });
+  }
+
   function fetchJSON() {
     return fetch.apply(null, arguments).then(response => {
       if (response.status === 200) {
