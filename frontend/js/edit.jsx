@@ -60,11 +60,11 @@ class EditWord extends React.Component {
 
     return (
       <div className={'row ui input' + (this.state.isDeleted ? ' hide' : '')}>
-        <div className={'ui input' + (isValid ? '' : ' error')}>
+        <div className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.word} placeholder='word' maxLength='24'
                  readOnly={ isDisabled } ref={x => this.wordEl = x} />
         </div>
-        <div className={'ui input' + (isValid ? '' : ' error')}>
+        <div className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.translation} placeholder='translation' maxLength='24'
                  readOnly={ isDisabled } ref={x => this.translationEl = x} />
         </div>
