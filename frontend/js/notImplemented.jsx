@@ -1,3 +1,5 @@
+let React = require('react');
+
 class NotImplemented extends React.Component {
   render() {
     return (

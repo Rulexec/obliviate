@@ -1,4 +1,9 @@
-let DataProvider = require('./dataProvider').DataProvider,
+require('../css/index.less');
+
+let React = require('react'),
+    ReactDOM = require('react-dom'),
+
+    DataProvider = require('./dataProvider').DataProvider,
 
     Router = require('./router').Router,
 
@@ -16,8 +21,6 @@ function start() {
   let headerEl = document.getElementById('header'),
       containerEl = document.getElementById('container'),
       footerEl = document.getElementById('footer');
-
-  let events = new EventEmitter();
 
   var unmountHandler = unmount => unmount();
 
@@ -37,8 +40,6 @@ function start() {
   chooseMenuItem('home');
 
   let flowOptions = {
-    events: events,
-
     setUnmountHandler: handler => {
       unmountHandler = unmount => {
         unmountHandler = unmount => unmount();

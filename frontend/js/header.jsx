@@ -1,4 +1,4 @@
-let memoBind = require('./util').memoBind;
+let React = require('react');
 
 class Header extends React.Component {
   render() {

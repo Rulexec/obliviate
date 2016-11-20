@@ -1,2 +1,3 @@
-/static/bundle.js
-/static/vendor.bundle.js
+/static/bundle/bundle.js
+/static/bundle/vendor.bundle.js
+/static/bundle/bin

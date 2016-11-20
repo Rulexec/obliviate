@@ -2,7 +2,7 @@ let webpack = require('webpack');
 
 module.exports = {
   resolve: {
-    modulesDirectories: ['bower_components']
+    modulesDirectories: ['node_modules', 'bower_components']
   },
 
   entry: {
@@ -12,7 +12,7 @@ module.exports = {
 
   output: {
     path: __dirname + '/frontend/static',
-    filename: 'bundle.js'
+    filename: '/bundle/bundle.js'
   },
   
   module: {
@@ -31,12 +31,23 @@ module.exports = {
        }},
 
       {test: /\.css$/, loader: 'style-loader!css-loader'},
-      {test: /\.(png|eot|woff|woff2|ttf|svg|)$/, loader: 'url-loader' }
+      {test: /\.less$/, loader: "style-loader!css-loader!less-loader"},
+      {test: /\.(png|eot|woff|woff2|ttf|svg)(?:\?v=.+?)?$/, loader: 'file-loader?name=./bundle/bin/[hash].[ext]' }
     ]
   },
   
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin(/* chunkName= */"vendor", /* filename= */"vendor.bundle.js")
+    new webpack.optimize.CommonsChunkPlugin(/* chunkName= */"vendor", /* filename= */"bundle/vendor.bundle.js"),
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false
+      }
+    }),
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: JSON.stringify('production')
+      }
+    })
   ]
 };
 

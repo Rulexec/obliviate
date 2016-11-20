@@ -1,4 +1,6 @@
-let memoBind = require('./util').memoBind;
+let React = require('react'),
+
+    memoBind = require('./util').memoBind;
 
 class Choice extends React.Component {
   choose() {
