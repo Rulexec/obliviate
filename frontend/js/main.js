@@ -159,15 +159,34 @@ function editFlow(options) {
     isLoading: true
   });
 
-  dataProvider.getAllWordsWithTranslations().then(words => {
+  function rerender(words) {
     render({
       words: words,
       onDelete: word => {
         dataProvider.deleteWord(word.id).then(() => word.onDeleted())
       },
       onUpdate: word => {
-        dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated());
+        if (word.id !== 0) {
+          dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated());
+        } else { // create
+          dataProvider.createWord(word.word, word.translation).then(data => {
+            word.onUpdated();
+            word.validationError(false)
+
+            if (data.error === null && typeof data.id === 'number') {
+              word.clearFields();
+              words.unshift({id: data.id, word: word.word, translation: word.translation});
+              rerender(words);
+            } else if (data.error === 'validation') {
+              word.validationError(true)
+            } else {
+              alert('TODO: Error: ' + data);
+            }
+          });
+        }
       }
     });
-  });
+  }
+
+  dataProvider.getAllWordsWithTranslations().then(words => rerender(words));
 }

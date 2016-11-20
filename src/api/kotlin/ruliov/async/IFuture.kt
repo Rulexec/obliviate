@@ -28,7 +28,7 @@ fun <T> IFuture<T>.bindErrorFuture(noError: () -> IFuture<T?>): IFuture<T?> {
     }
 }
 
-fun catch(block: () -> IFuture<Any?>): IFuture<Any?> {
+fun catchFuture(block: () -> IFuture<Any?>): IFuture<Any?> {
     return createFuture {
         var future: IFuture<Any?>
 

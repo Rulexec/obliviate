@@ -4,18 +4,17 @@ package ruliov.obliviate
 
 import org.eclipse.jetty.server.Request
 import ruliov.async.bindErrorFuture
-import ruliov.async.catch
+import ruliov.async.catchFuture
 import ruliov.async.createFuture
-import ruliov.jetty.*
+import ruliov.jetty.HTTPRouter
+import ruliov.jetty.IHTTPMiddleware
+import ruliov.jetty.JettyServer
 import ruliov.jetty.static.DevelopmentStaticFilesServer
 import ruliov.jetty.static.StaticFilesServer
 import ruliov.obliviate.controllers.*
 import ruliov.obliviate.db.Database
-import ruliov.obliviate.json.toCompactJSON
-import ruliov.obliviate.json.toJSON
 import ruliov.toJDBCUrl
 import java.io.File
-import java.io.InputStream
 import java.util.regex.Pattern
 
 val LOCAL: Boolean = System.getenv("LOCAL") != null
@@ -31,10 +30,12 @@ fun main(args: Array<String>) {
         "jdbc:" + DATABASE_URL
     )
 
-    database.loadData().bindErrorFuture { catch {
+    database.loadData().bindErrorFuture { catchFuture {
         val router = HTTPRouter()
 
         router.addRoute("GET", "/words/", getAllWordsController(database))
+        router.addRoute("POST", "/words/", createWordController(database))
+
         router.addRoute("DELETE",
                 Pattern.compile("^/words/(\\d+)$"),
                 deleteWordController(database))

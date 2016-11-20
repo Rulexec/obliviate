@@ -6,7 +6,8 @@ class EditWord extends React.Component {
 
     this.state = {
       isDisabled: false,
-      isDeleted: false
+      isDeleted: false,
+      isValid: true
     };
   }
 
@@ -29,26 +30,42 @@ class EditWord extends React.Component {
     this.setState({isDisabled: true});
 
     this.props.onUpdate({
-      id: this.props.id,
-      word: this.getWord(),
-      translation: this.getTranslation(),
+      id: self.props.id,
+      word: self.wordEl.value,
+      translation: self.translationEl.value,
 
       onUpdated() {
         self.setState({isDisabled: false});
+      },
+      
+      clearFields() {
+        self.wordEl.value = '';
+        self.translationEl.value = '';
+      },
+
+      validationError(flag) {
+        self.setState({
+          isValid: !flag
+        });
       }
     });
   }
 
   render() {
     let $ = this.props,
-        isDisabled = !!this.state.isDisabled;
+        isDisabled = !!this.state.isDisabled,
+        isValid = this.state.isValid;
 
     return (
       <div className={'row ui input' + (this.state.isDeleted ? ' hide' : '')}>
-        <input type='text' defaultValue={$.word} placeholder='word' maxLength='24'
-               readOnly={ isDisabled } ref={x => this.getWord = () => x.value} />
-        <input type='text' defaultValue={$.translation} placeholder='translation' maxLength='24'
-               readOnly={ isDisabled } ref={x => this.getTranslation = () => x.value} />
+        <div className={'ui input' + (isValid ? '' : ' error')}>
+          <input type='text' defaultValue={$.word} placeholder='word' maxLength='24'
+                 readOnly={ isDisabled } ref={x => this.wordEl = x} />
+        </div>
+        <div className={'ui input' + (isValid ? '' : ' error')}>
+          <input type='text' defaultValue={$.translation} placeholder='translation' maxLength='24'
+                 readOnly={ isDisabled } ref={x => this.translationEl = x} />
+        </div>
         <button className={'ui button' + (isDisabled ? ' disabled' : '')}
                 onClick={isDisabled || !$.onUpdate ? null : this.onUpdate.bind(this)}>{$.saveButtonText || 'Save'}</button>
         {this.props.withoutDelete ? null :
@@ -66,7 +83,7 @@ class Edit extends React.Component {
 
     return (
       <div className='edit-component'>
-        <EditWord withoutDelete saveButtonText='Add' />
+        <EditWord onUpdate={onUpdate} id={0} withoutDelete saveButtonText='Add' />
         { this.props.isLoading ?
             <p style={{marginTop: '1em'}}>Loading...</p> :
             this.props.words.map(({id, word, translation}) =>

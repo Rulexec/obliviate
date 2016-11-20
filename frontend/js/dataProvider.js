@@ -26,12 +26,16 @@ function DataProvider(options) {
     return fetchJSON('words/' + id, { method: 'POST', body: JSON.stringify([word, translation]) });
   }
 
+  this.createWord = function(word, translation) {
+    return fetchJSON('words/', { method: 'POST', body: JSON.stringify([word, translation]) });
+  }
+
   function fetchJSON() {
     return fetch.apply(null, arguments).then(response => {
-      if (response.status === 200) {
+      if (response.status in {'200': true, '400': true}) {
         return response.json();
       } else {
-        return Promise.reject(['status not 200', response]);
+        return Promise.reject(['status not 200,400', response]);
       }
     });
   }

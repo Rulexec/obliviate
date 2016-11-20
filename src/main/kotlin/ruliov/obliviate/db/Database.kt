@@ -1,14 +1,12 @@
 package ruliov.obliviate.db
 
-import ruliov.async.IFuture
-import ruliov.async.bindToErrorFuture
-import ruliov.async.catch
-import ruliov.async.createFuture
+import ruliov.async.*
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
 import ruliov.toHexString
 import java.sql.Connection
 import java.util.*
+import java.util.regex.Pattern
 
 class Database(jdbcDriver: String, dbUrl: String) {
     private val random: Random = Random()
@@ -24,11 +22,11 @@ class Database(jdbcDriver: String, dbUrl: String) {
     }
 
     private fun getConnectionAndCatch(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {
-        return this.pool.getConnection().bindToErrorFuture { catch { it.use { handler(it.getConnection()) } } }
+        return this.pool.getConnection().bindToErrorFuture { catchFuture { it.use { handler(it.getConnection()) } } }
     }
 
     fun loadData(): IFuture<Any?> {
-        return this.pool.getConnection().bindToErrorFuture { catch { it.use {
+        return this.pool.getConnection().bindToErrorFuture { catchFuture { it.use {
             val connection = it.getConnection()
 
             val translationsMap = HashMap<String, String>()
@@ -126,6 +124,45 @@ class Database(jdbcDriver: String, dbUrl: String) {
         } else {
             createFuture("Nothing updated: $rows")
         }
+    }
+
+    private val correctWord = Pattern.compile("^[a-z'\\s]{1,32}$")
+    class WordValidationError() : Throwable()
+
+    fun createWord(wordText: String, translation: String): IAsync<Long, Any> {
+        if (!correctWord.matcher(wordText).matches()) {
+            return asyncError(WordValidationError())
+        }
+
+        if (translation.isEmpty() || translation.length > 255) {
+            return asyncError(WordValidationError())
+        }
+
+        return this.pool.getConnection().success { catchAsync<Long> { it.use {
+            val connection = it.getConnection()
+
+            val ps = connection.prepareStatement(
+                "WITH insertedWord AS " +
+                    "(INSERT INTO translations (text) VALUES (?) RETURNING id AS tid)\n" +
+                "INSERT INTO words (word, \"translationId\") VALUES " +
+                    "(?, (SELECT tid FROM insertedWord)) RETURNING id, \"translationId\"")
+
+            ps.setString(1, translation)
+            ps.setString(2, wordText)
+
+            val resultSet = ps.executeQuery()
+            if (!resultSet.next()) throw Exception("SQL: no result")
+
+            val wordId = resultSet.getLong(1)
+            val translationId = resultSet.getString(2)
+
+            val word = WordWithTranslation(wordId, wordText, translationId, translation)
+
+            this.wordsWithTranslations.add(0, word)
+            this.wordById[wordId] = word
+
+            asyncResult(wordId)
+        } } }
     }
 
     fun getAllWords(): List<WordWithTranslation> {
