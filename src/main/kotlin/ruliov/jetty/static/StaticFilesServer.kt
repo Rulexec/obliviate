@@ -37,12 +37,12 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
             cached = CachedFile(bytes, etag)
             cache[request.requestURI] = cached
         } else {
-            if (request.getHeader("If-None-Match")?.equals(cached.etag) ?: false) {
-                request.response.setStatusWithReason(304, "Not Modified")
-                return
-            }
-
             bytes = cached.bytes
+        }
+
+        if (request.getHeader("If-None-Match")?.equals(cached.etag) ?: false) {
+            request.response.setStatusWithReason(304, "Not Modified")
+            return
         }
 
         addMimeTypeHeaderByUrl(request)
