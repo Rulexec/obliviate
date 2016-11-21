@@ -52,6 +52,8 @@ class Game extends React.Component {
 
   render() {
     let choices = [];
+
+    if (!this.props.word.error)
     for (let i = 0; i < 4; i++) {
       let choice =
         <Choice {...this.props.word.choices[i]} key={i}
@@ -65,11 +67,17 @@ class Game extends React.Component {
 
     return (
       <div className='game'>
-        <div className='word-box ui message'><span>{this.props.word.word}</span></div>
-        <div className='choices'>
-          <div className='row'>{choices[0]}{choices[1]}</div>
-          <div className='row'>{choices[2]}{choices[3]}</div>
-        </div>
+        {!this.props.word.error ? [
+           <div className='word-box ui message'><span>{this.props.word.word}</span></div>,
+           <div className='choices'>
+             <div className='row'>{choices[0]}{choices[1]}</div>
+             <div className='row'>{choices[2]}{choices[3]}</div>
+           </div>
+         ] : (
+           <div className='ui message error'>
+             <span>{this.props.word.error === 'no-words' ? 'Добавьте больше слов' : this.props.word.error}</span>
+           </div>
+         )}
       </div>
     );
   }

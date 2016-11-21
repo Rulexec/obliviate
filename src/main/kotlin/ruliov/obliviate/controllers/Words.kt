@@ -2,11 +2,10 @@ package ruliov.obliviate.controllers
 
 import org.json.JSONArray
 import org.json.JSONException
-import org.json.JSONObject
 import org.json.JSONTokener
-import ruliov.data.map
 import ruliov.data.mapR
-import ruliov.jetty.*
+import ruliov.jetty.createControllerRespondsJSON
+import ruliov.jetty.createControllerRespondsJSONDontCaches
 import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toCompactJSON
 import ruliov.obliviate.json.toJSON
@@ -18,10 +17,14 @@ fun getAllWordsController(database: Database) = createControllerRespondsJSON { r
     request.response.writer.write(words.toCompactJSON())
 }
 
-fun getRandomWordController(database: Database) = createControllerRespondsJSONDontCaches { request, strings ->
+private fun getRandomWordJSON(database: Database): String {
     val word = database.getRandomWordWith4RandomTranslations()
 
-    request.response.writer.write(word.toJSON())
+    return word?.toJSON() ?: "{\"error\":\"no-words\"}"
+}
+
+fun getRandomWordController(database: Database) = createControllerRespondsJSONDontCaches { request, strings ->
+    request.response.writer.write(getRandomWordJSON(database))
 }
 
 fun checkAndGetNextWordController(database: Database) = createControllerRespondsJSON { request, groups ->
@@ -30,7 +33,7 @@ fun checkAndGetNextWordController(database: Database) = createControllerResponds
     val wordId = groups[0].toLong()
     val translationIdJSON = database.getWordTranslationId(wordId)?.let { "\"$it\"" } ?: "null"
 
-    val nextWordJSON = database.getRandomWordWith4RandomTranslations().toJSON()
+    val nextWordJSON = getRandomWordJSON(database)
 
     request.response.writer.write("{\"correct\":$translationIdJSON,\"word\":$nextWordJSON}")
 }

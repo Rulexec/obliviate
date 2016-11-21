@@ -3,7 +3,6 @@ package ruliov.obliviate.db
 import ruliov.async.*
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
-import ruliov.toHexString
 import java.sql.Connection
 import java.util.*
 import java.util.regex.Pattern
@@ -43,18 +42,23 @@ class Database(jdbcDriver: String, dbUrl: String) {
 
             resultSet = statement.executeQuery("SELECT id, word, \"translationId\" FROM words")
 
-            while (resultSet.next()) {
-                val id = resultSet.getLong(1)
-                val word = resultSet.getString(2)
-                val translationId = resultSet.getString(3)
+            synchronized(this.wordsWithTranslations, {
+                this.wordsWithTranslations.clear()
+                this.wordById.clear()
 
-                val translation = translationsMap[translationId] ?: throw Exception("No translation for word $id")
+                while (resultSet.next()) {
+                    val id = resultSet.getLong(1)
+                    val word = resultSet.getString(2)
+                    val translationId = resultSet.getString(3)
 
-                val wordWithTranslation = WordWithTranslation(id, word, translationId, translation)
+                    val translation = translationsMap[translationId] ?: throw Exception("No translation for word $id")
 
-                this.wordsWithTranslations.add(wordWithTranslation)
-                this.wordById[id] = wordWithTranslation
-            }
+                    val wordWithTranslation = WordWithTranslation(id, word, translationId, translation)
+
+                    this.wordsWithTranslations.add(wordWithTranslation)
+                    this.wordById[id] = wordWithTranslation
+                }
+            })
 
             createFuture<Any?>(null)
         } } }
@@ -64,7 +68,7 @@ class Database(jdbcDriver: String, dbUrl: String) {
         val statement = it.createStatement()
         statement.execute(RESET_DB_SQL)
 
-        createFuture<Any?>(null)
+        this.loadData()
     }
 
     fun deleteWord(id: Long): IFuture<Any?> = this.getConnectionAndCatch {
@@ -78,17 +82,19 @@ class Database(jdbcDriver: String, dbUrl: String) {
         if (rows == 1) {
             // maybe we need to switch to trees, but not now
             // also, we can use binary search, if we will fetch sorted words from db
-            var i = 0
-            for (word in this.wordsWithTranslations) {
-                if (word.wordId == id) {
-                    this.wordsWithTranslations.removeAt(i)
-                    this.wordById.remove(id)
+            synchronized(this.wordsWithTranslations, {
+                var i = 0
+                for (word in this.wordsWithTranslations) {
+                    if (word.wordId == id) {
+                        this.wordsWithTranslations.removeAt(i)
+                        this.wordById.remove(id)
 
-                    break
+                        break
+                    }
+
+                    i++
                 }
-
-                i++
-            }
+            })
 
             createFuture<Any?>(null)
         } else {
@@ -111,14 +117,16 @@ class Database(jdbcDriver: String, dbUrl: String) {
         val rows = ps.executeUpdate()
 
         if (rows == 1) {
-            val word = this.wordById[id]
+            synchronized(this.wordsWithTranslations, {
+                val word = this.wordById[id]
 
-            if (word != null) {
-                word.word = wordText
-                word.translation = translation
-            } else {
-                System.err.println("Word $id not in memory")
-            }
+                if (word != null) {
+                    word.word = wordText
+                    word.translation = translation
+                } else {
+                    System.err.println("Word $id not in memory")
+                }
+            })
 
             createFuture<Any?>(null)
         } else {
@@ -158,18 +166,23 @@ class Database(jdbcDriver: String, dbUrl: String) {
 
             val word = WordWithTranslation(wordId, wordText, translationId, translation)
 
-            this.wordsWithTranslations.add(0, word)
-            this.wordById[wordId] = word
+            synchronized(this.wordsWithTranslations, {
+                this.wordsWithTranslations.add(0, word)
+                this.wordById[wordId] = word
+            })
 
             asyncResult(wordId)
         } } }
     }
 
-    fun getAllWords(): List<WordWithTranslation> {
-        return this.wordsWithTranslations
-    }
+    fun getAllWords(): List<WordWithTranslation> = synchronized(this.wordsWithTranslations, {
+        return ArrayList(this.wordsWithTranslations)
+    })
 
-    fun getRandomWordWith4RandomTranslations(): WordWith4TranslationVariants {
+    fun getRandomWordWith4RandomTranslations(): WordWith4TranslationVariants? =
+    synchronized(this.wordsWithTranslations, {
+        if (this.wordsWithTranslations.size < 4) return null
+
         val wordId = this.random.nextInt(this.wordsWithTranslations.size)
         val wordWithTranslation = this.wordsWithTranslations[wordId]
 
@@ -187,11 +200,6 @@ class Database(jdbcDriver: String, dbUrl: String) {
 
             do {
                 rand = this.random.nextInt(this.wordsWithTranslations.size)
-
-                if (this.wordsWithTranslations.size < 4) {
-                    // FIXME: just quickfix to prevent endless loop
-                    throw Exception("It's a trap!")
-                }
             } while (rand in usedVariants)
 
             usedVariants.add(rand)
@@ -203,9 +211,9 @@ class Database(jdbcDriver: String, dbUrl: String) {
                 this.wordsWithTranslations[wordId].wordId,
                 this.wordsWithTranslations[wordId].word,
                 variants)
-    }
+    })
 
-    fun getWordTranslationId(wordId: Long): String? {
+    fun getWordTranslationId(wordId: Long): String? = synchronized(this.wordsWithTranslations, {
         return this.wordById[wordId]?.translationId
-    }
+    })
 }
