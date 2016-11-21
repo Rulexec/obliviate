@@ -48,7 +48,16 @@ module.exports = {
         NODE_ENV: JSON.stringify('production')
       }
     })
-  ]
+  ],
+
+  devServer: {
+    proxy: {
+      '/': {
+        target: 'http://localhost:5000',
+        secure: false
+      }
+    }
+  }
 };
 
 if (process.env.LOCAL) {
