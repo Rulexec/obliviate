@@ -15,8 +15,8 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
     private val cache = ConcurrentHashMap<String, CachedFile>()
 
     override fun handle(request: Request, next: () -> Unit) {
-        val cached = cache[request.requestURI]
-        var bytes: ByteArray
+        var cached = cache[request.requestURI]
+        val bytes: ByteArray
 
         if (cached == null) {
             val inputStream = resolver(request.requestURI)
@@ -34,10 +34,8 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
             val digest = md.digest()
             val etag = "1-" + digest.toHexString()
 
-            cache[request.requestURI] = CachedFile(bytes, etag)
-
-            request.response.setHeader("Cache-Control", "public, must-revalidate")
-            request.response.setHeader("ETag", etag)
+            cached = CachedFile(bytes, etag)
+            cache[request.requestURI] = cached
         } else {
             if (request.getHeader("If-None-Match")?.equals(cached.etag) ?: false) {
                 request.response.setStatusWithReason(304, "Not Modified")
@@ -48,6 +46,8 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
         }
 
         addMimeTypeHeaderByUrl(request)
+        request.response.setHeader("Cache-Control", "public, must-revalidate")
+        request.response.setHeader("ETag", cached.etag)
 
         val acceptEncoding = request.getHeader("Accept-Encoding")
         if (acceptEncoding?.contains("gzip", true) == true) {
