@@ -7,6 +7,7 @@ import java.io.InputStream
 import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.GZIPOutputStream
 
 class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPMiddleware {
     private data class CachedFile(val bytes: ByteArray, val etag: String)
@@ -48,7 +49,16 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
 
         addMimeTypeHeaderByUrl(request)
 
-        request.response.outputStream.write(bytes)
+        val acceptEncoding = request.getHeader("Accept-Encoding")
+        if (acceptEncoding?.contains("gzip", true) == true) {
+            // TODO: we can cache gzipped content
+            request.response.setHeader("Content-Encoding", "gzip")
+            val gzipStream = GZIPOutputStream(request.response.outputStream)
+            gzipStream.write(bytes)
+            gzipStream.finish()
+        } else {
+            request.response.outputStream.write(bytes)
+        }
 
         request.response.closeOutput()
     }

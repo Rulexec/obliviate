@@ -10,9 +10,9 @@ fun addMimeTypeHeaderByUrl(request: Request): Unit {
         when (extension) {
             "png" -> request.response.setHeader("Content-Type", "image/png")
             "ico" -> request.response.setHeader("Content-Type", "image/x-icon")
-            "css","less" -> request.response.setHeader("Content-Type", "text/css")
-            "html" -> request.response.setHeader("Content-Type", "text/html")
-            "js" -> request.response.setHeader("Content-Type", "text/javascript")
+            "css","less" -> request.response.setHeader("Content-Type", "text/css; charset=UTF-8")
+            "html" -> request.response.setHeader("Content-Type", "text/html; charset=UTF-8")
+            "js" -> request.response.setHeader("Content-Type", "text/javascript; charset=UTF-8")
         }
     }
 }
