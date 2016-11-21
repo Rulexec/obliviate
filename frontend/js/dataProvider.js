@@ -14,7 +14,15 @@ function DataProvider(options) {
 
   this.getAllWordsWithTranslations = function() {
     return fetchJSON('words/').then(data => {
-      return data.map(([id, word, translation]) => {return {id, word, translation}});
+      let words = data.map(([id, word, translation]) => {return {id, word, translation}});
+
+      words.sort(function(a, b) {
+        if (a.word < b.word)   return -1;
+        if (a.word === b.word) return 0;
+                               return 1;
+      });
+
+      return words;
     });
   };
 

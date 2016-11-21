@@ -157,13 +157,53 @@ function editFlow(options) {
   let render = options.render.bind(options, Edit);
 
   render({
-    isLoading: true
+    isLoading: true,
+    index: []
   });
 
-  function rerender(words) {
+  function rerender(allWords, selectedFilter, newWord) {
+    let index = buildIndex(allWords),
+        words = allWords;
+    
+    newWord || (newWord = null);
+
+    if (index.length > 0) {
+      if (typeof selectedFilter !== 'number') {
+        if (typeof selectedFilter === 'string') {
+          selectedFilter = selectedFilter.toLowerCase();
+
+          index.some((x, i) => {
+            if (isWordSatisfiesFilter(selectedFilter, x.value.toLowerCase())) {
+              selectedFilter = i;
+              return true;
+            } else return false;
+          });
+        } else {
+          selectedFilter = 0;
+        }
+      }
+
+      index[selectedFilter].active = true;
+      let filter = index[selectedFilter].value.toLowerCase();
+
+      words = allWords.filter(x => {
+        return isWordSatisfiesFilter(x.word, filter)
+      });
+
+      function isWordSatisfiesFilter(word, filter) {
+        return word.slice(0, filter.length).toLowerCase() === filter;
+      }
+    }
+
     render({
       words: words,
+      newWord: newWord,
+      index: index,
       onDelete: word => {
+        let i = -1;
+        allWords.some((x, j) => x.id === word.id && (j = i, true));
+        if (i !== -1) words.splice(i, 1);
+
         dataProvider.deleteWord(word.id).then(() => word.onDeleted())
       },
       onUpdate: word => {
@@ -176,8 +216,19 @@ function editFlow(options) {
 
             if (data.error === null && typeof data.id === 'number') {
               word.clearFields();
-              words.unshift({id: data.id, word: word.word, translation: word.translation});
-              rerender(words);
+
+              // TODO: we can use binary search here
+              let i = 0;
+              allWords.some((x, j) => {
+                if (x.word.toLowerCase() > word.word.toLowerCase()) return true;
+                else return (j = i), false;
+              });
+              let newWord = {id: data.id, word: word.word, translation: word.translation};
+              allWords.splice(i, 0, newWord);
+
+              selectedFilter = word.word;
+
+              rerender(allWords, selectedFilter, newWord);
             } else if (data.error === 'validation') {
               word.validationError(true)
             } else {
@@ -185,8 +236,47 @@ function editFlow(options) {
             }
           });
         }
+      },
+      onIndex(indexItem) {
+        rerender(allWords, indexItem.id);
       }
     });
+  }
+
+  function buildIndex(words) {
+    // TODO: do it recursively, if some bucket have too much words
+
+    let buckets = new Map();
+
+    words.forEach(x => {
+      let c = x.word[0].toLowerCase();
+
+      let list = buckets.get(c);
+      if (!list) buckets.set(c, list = []);
+
+      list.push(x);
+    });
+
+    let result = [];
+
+    for (let [key, value] of buckets) {
+      key = key[0].toUpperCase() + key.slice(1);
+
+      result.push({
+        value: key,
+        active: false
+      });
+    }
+
+    result.sort(function(a, b) {
+      if (a.value < b.value)   return -1;
+      if (a.value === b.value) return 0;
+                               return 1;
+    });
+
+    result.forEach((x, i) => x.id = i);
+
+    return result;
   }
 
   dataProvider.getAllWordsWithTranslations().then(words => rerender(words));

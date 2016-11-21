@@ -68,8 +68,8 @@ class Game extends React.Component {
     return (
       <div className='game'>
         {!this.props.word.error ? [
-           <div className='word-box ui message'><span>{this.props.word.word}</span></div>,
-           <div className='choices'>
+           <div key='word' className='word-box ui message'><span>{this.props.word.word}</span></div>,
+           <div key='choices' className='choices'>
              <div className='row'>{choices[0]}{choices[1]}</div>
              <div className='row'>{choices[2]}{choices[3]}</div>
            </div>
