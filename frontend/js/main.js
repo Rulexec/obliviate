@@ -28,7 +28,7 @@ function start() {
     menuItemIsEnabled: {},
     menuItemIsActive: {}
   };
-  const MENU_ITEMS = ['home', 'stats', 'duel', 'edit'];
+  const MENU_ITEMS = ['home', 'verbs', 'stats', 'duel', 'edit'];
   function chooseMenuItem(item) {
     MENU_ITEMS.forEach(x => {
       headerButtonsState.menuItemIsEnabled[x] = true;
@@ -61,6 +61,9 @@ function start() {
       chooseMenuItem('edit'); renderHeader();
 
       editFlow(flowOptions)
+    }) }, verbs() { unmountHandler(() => {
+      chooseMenuItem('verbs'); renderHeader();
+      flowOptions.render(NotImplemented, {});
     }) }, stats() { unmountHandler(() => {
       chooseMenuItem('stats'); renderHeader();
       flowOptions.render(NotImplemented, {});
@@ -80,16 +83,10 @@ function start() {
     let defaultProps = {
       onMenuItemSelected: menuItem => {
         unmountHandler(() => {
-          switch (menuItem) {
-          case 'home':
+          if (menuItem === 'home') {
             router.go('');
-            break;
-          case 'edit':
-          case 'stats':
-          case 'duel':
+          } else {
             router.go(menuItem);
-            break;
-          default: throw 'unknown menu item: ' + menuItem
           }
         });
       }

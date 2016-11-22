@@ -11,7 +11,12 @@ class Header extends React.Component {
                 onClick={self.props.menuItemIsEnabled[id] ? self.props.onMenuItemSelected.bind(null, id) : null}>{text}</a>
     }
 
-    let leftItems = [['home', 'Играть'], ['stats', 'Статистика'], ['duel', 'Дуэли']].map(createItem),
+    let leftItems = [
+          ['home', 'Играть'],
+          ['verbs', 'Неправильные глаголы'],
+          ['stats', 'Статистика'],
+          ['duel', 'Дуэли']
+        ].map(createItem),
         rightItems = [['edit', 'Редактировать']].map(createItem);
 
     return (
