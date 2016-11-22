@@ -23,7 +23,7 @@ val PRODUCTION: Boolean = !LOCAL
 fun main(args: Array<String>) {
     val DATABASE_URL =
             toJDBCUrl(System.getenv("DATABASE_URL") ?:
-            "postgres://ruliov:ruliov@localhost:5432/obliviate")
+            "postgres://ruliov:ruliov@localhost:5432/obliviate1")
 
     val database = Database(
         "org.postgresql.Driver",

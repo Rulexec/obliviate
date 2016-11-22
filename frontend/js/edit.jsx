@@ -77,17 +77,17 @@ class EditWord extends React.Component {
       <div className={'row ui input' + (this.state.isDeleted ? ' hide' : '') +
                                        (this.props.isNewWord ? ' focus' : '')}>
         <div className={'input-text ui input' + (isValid ? '' : ' error')}>
-          <input type='text' defaultValue={$.word} placeholder='word' maxLength='24'
+          <input type='text' defaultValue={$.word} placeholder='слово' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
                  readOnly={ isDisabled } ref={x => this.wordEl = x} />
         </div>
         <div className={'input-text ui input' + (isValid ? '' : ' error')}>
-          <input type='text' defaultValue={$.translation} placeholder='translation' maxLength='24'
+          <input type='text' defaultValue={$.translation} placeholder='перевод' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
                  readOnly={ isDisabled } ref={x => this.translationEl = x} />
         </div>
         <button className={'ui button' + (isDisabled ? ' disabled' : '')}
-                onClick={this.onMaybeUpdate.bind(this)}>{$.saveButtonText || 'Save'}</button>
+                onClick={this.onMaybeUpdate.bind(this)}>{$.saveButtonText || 'Сохранить'}</button>
         {this.props.withoutDelete ? null :
           <button className={'ui basic button' + (isDisabled ? ' disabled' : '')}
                   onClick={isDisabled || !$.onDelete ? null : this.onDelete.bind(this)}><i className='fa fa-trash'></i></button>}
@@ -107,7 +107,7 @@ class Edit extends React.Component {
       <div className='edit-component'>
         <div className='left-panel'></div>
         <div className='container'>
-          <EditWord onUpdate={onUpdate} id={0} withoutDelete saveButtonText='Add' />
+          <EditWord onUpdate={onUpdate} id={0} withoutDelete saveButtonText='Добавить' />
           { this.props.isLoading ?
               <p style={{marginTop: '1em'}}>Loading...</p> :
               this.props.words.map(({id, word, translation}) =>
