@@ -192,16 +192,24 @@ function editFlow(options) {
       }
     }
 
+    let wordsCount = words.length;
+
     render({
       words: words,
       newWord: newWord,
       index: index,
       onDelete: word => {
-        let i = -1;
-        allWords.some((x, j) => x.id === word.id && (j = i, true));
-        if (i !== -1) words.splice(i, 1);
+        allWords.some((x, i) => x.id === word.id && (allWords.splice(i, 1), true));
 
-        dataProvider.deleteWord(word.id).then(() => word.onDeleted())
+        dataProvider.deleteWord(word.id).then(() => {
+          wordsCount--;
+
+          if (wordsCount === 0) {
+            rerender(allWords);
+          } else {
+            word.onDeleted();
+          }
+        });
       },
       onUpdate: word => {
         if (word.id !== 0) {
@@ -222,6 +230,8 @@ function editFlow(options) {
               });
               let newWord = {id: data.id, word: word.word, translation: word.translation};
               allWords.splice(i, 0, newWord);
+
+              wordsCount++;
 
               selectedFilter = word.word;
 
