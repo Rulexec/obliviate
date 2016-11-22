@@ -5,7 +5,6 @@ import ruliov.jetty.IHTTPMiddleware
 import ruliov.toHexString
 import java.io.InputStream
 import java.security.MessageDigest
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPOutputStream
 
