@@ -1,0 +1,10 @@
+{
+  "name": "obliviate-under-construction",
+  "version": "0.0.1",
+  "description": "",
+  "engines": {
+    "node": "7.1.x",
+    "npm": "3.10.x"
+  },
+  "author": "Alexander Ruliov <alexander.ruliov@gmail.com>"
+}
