@@ -19,7 +19,7 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?)
         val bytes: ByteArray
 
         if (cached == null) {
-            val inputStream = resolver(request.requestURI) ?: return false
+            val inputStream = resolver(fileName) ?: return false
 
             bytes = inputStream.toByteArray()
             val md = MessageDigest.getInstance("MD5")
