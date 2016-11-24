@@ -5,9 +5,11 @@ let React = require('react'),
 
     DataProvider = require('./dataProvider').DataProvider,
 
+    Session = require('./session').Session,
+
     Router = require('./router').Router,
 
-    Header = require('./header.jsx').Header,
+    Header = require('./header.js').Header,
     Game = require('./game.jsx').Game,
     Edit = require('./edit.jsx').Edit,
     NotImplemented = require('./notImplemented.jsx').NotImplemented;
@@ -18,26 +20,23 @@ if (document.readyState === 'complete') start();
 else window.addEventListener('load', start);
 
 function start() {
-  let headerEl = document.getElementById('header'),
-      containerEl = document.getElementById('container'),
+  let containerEl = document.getElementById('container'),
       footerEl = document.getElementById('footer');
 
   var unmountHandler = unmount => unmount();
 
-  let headerButtonsState = {
-    menuItemIsEnabled: {},
-    menuItemIsActive: {}
-  };
-  const MENU_ITEMS = ['home', 'stats', 'duel', 'edit'];
-  function chooseMenuItem(item) {
-    MENU_ITEMS.forEach(x => {
-      headerButtonsState.menuItemIsEnabled[x] = true;
-      headerButtonsState.menuItemIsActive[x] = false;
-    });
-    headerButtonsState.menuItemIsEnabled[item] = false;
-    headerButtonsState.menuItemIsActive[item] = true;
-  }
-  chooseMenuItem('home');
+  let session = new Session();
+
+  let user = session.getUser();
+
+  let router = new Router();
+
+  let header = new Header({
+    el: document.getElementById('header'),
+    getUser() { return user; },
+    getUnmountHandler() { return unmountHandler; },
+    router: router
+  });
 
   let flowOptions = {
     setUnmountHandler: handler => {
@@ -50,22 +49,21 @@ function start() {
     render: (component, props) => ReactDOM.render(React.createElement(component, props), containerEl)
   };
 
-  let router = new Router();
   router.addRoutes({
     ['']() { unmountHandler(() => {
-      chooseMenuItem('home'); renderHeader();
+      header.chooseMenuItem('home'); header.render();
 
       ReactDOM.render(React.createElement('noscript'), containerEl)
       gameFlow(flowOptions);
     }) }, edit() { unmountHandler(() => {
-      chooseMenuItem('edit'); renderHeader();
+      header.chooseMenuItem('edit'); header.render();
 
       editFlow(flowOptions)
     }) }, stats() { unmountHandler(() => {
-      chooseMenuItem('stats'); renderHeader();
+      header.chooseMenuItem('stats'); header.render();
       flowOptions.render(NotImplemented, {});
     }) }, duel() { unmountHandler(() => {
-      chooseMenuItem('duel'); renderHeader();
+      header.chooseMenuItem('duel'); header.render();
       flowOptions.render(NotImplemented, {});
     }) }
   });
@@ -79,60 +77,32 @@ function start() {
 
     if (data !== undefined && data.type === 'auth') {
       if (data.auth === 'vk' && typeof data.code === 'string') {
-        // TODO: block login button/show spinner
+        let responseReceived = false;
+
         dataProvider.loginVk({code: data.code}).then(loginData => {
-          if (!loginData.error) {
-            console.log(loginData);
-            // success login
+          if (loginData.user && typeof loginData.user.token === 'string') {
+            user = session.createUser({
+              token: loginData.user.token,
+              id: loginData.user.id
+            });
+
+            header.render();
           } else {
+            header.loginButtonEnable(true);
+
             console.log('login failed');
             console.error(loginData);
           }
         });
+
+        setTimeout(() => {
+          if (responseReceived) return;
+
+          header.loginButtonEnable(true);
+        }, 5000);
       }
     }
   });
-
-  function renderHeader(props) {
-    props || (props = {});
-
-// https://oauth.vk.com/authorize?client_id=5740564&display=popup&scope=0&response_type=code&v=5.60&redirect_uri=http://localhost/
-// https://vk.com/dev/auth_sites
-
-    let defaultProps = {
-      onMenuItemSelected: menuItem => {
-        unmountHandler(() => {
-          switch (menuItem) {
-          case 'home':
-            router.go('');
-            break;
-          case 'edit':
-          case 'stats':
-          case 'duel':
-            router.go(menuItem);
-            break;
-          default: throw 'unknown menu item: ' + menuItem
-          }
-        });
-      },
-
-      onLogin: () => {
-        let uri = document.location.protocol + '//' + document.location.host + '/auth/vk';
-
-        let authUri = 'https://oauth.vk.com/authorize?client_id=5740564' +
-                      '&state=vk' +
-                      '&display=popup&scope=0&response_type=code&v=5.60&redirect_uri=' + uri;
-
-        let left = (window.screen.width - 600) / 2,
-            top = (window.screen.height - 400) / 2;
-        window.open(authUri, '_blank', `width=600,height=400,left=${left},top=${top}`);
-      }
-    };
-
-    let mixedProps = Object.assign({}, defaultProps, headerButtonsState, props);
-
-    ReactDOM.render(React.createElement(Header, mixedProps), headerEl);
-  }
 }
 
 function gameFlow(options) {
