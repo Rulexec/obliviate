@@ -54,6 +54,9 @@ CREATE SEQUENCE words_id_seq
     NO MAXVALUE
     CACHE 1;
 
+ALTER TABLE ONLY users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
 CREATE TABLE words (
     id integer DEFAULT nextval('words_id_seq'::regclass) NOT NULL,
     text character varying(32) NOT NULL,
@@ -77,8 +80,6 @@ ALTER TABLE ONLY "usersVk"
     ADD CONSTRAINT "usersVk_pkey" PRIMARY KEY ("userId", "vkUserId");
 ALTER TABLE ONLY "usersVk"
     ADD CONSTRAINT "usersVk_vkUserId_key" UNIQUE ("vkUserId");
-ALTER TABLE ONLY users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY words
     ADD CONSTRAINT words_pkey PRIMARY KEY (id);
 CREATE INDEX "usersVk_vkUserId_idx" ON "usersVk" USING hash ("vkUserId");
