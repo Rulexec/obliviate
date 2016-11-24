@@ -61,6 +61,6 @@ module.exports = {
 };
 
 if (process.env.LOCAL) {
+  module.exports.plugins = module.exports.plugins[0];
   delete module.exports.entry.vendor;
-  delete module.exports.plugins;
 }

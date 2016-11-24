@@ -2,4 +2,18 @@
   width: 50vw;
   margin-top: 2em;
   margin-left: 25vw;
+
+  .login {
+    > span {
+      border-bottom: 1px dashed black;
+    }
+
+    &.disabled {
+      color: gray;
+
+      > span {
+        border: none;
+      }
+    }
+  }
 }

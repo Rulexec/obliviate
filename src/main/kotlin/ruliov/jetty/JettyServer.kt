@@ -4,7 +4,6 @@ import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.eclipse.jetty.server.handler.HandlerList
-import ruliov.jetty.HTTPRouter
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 

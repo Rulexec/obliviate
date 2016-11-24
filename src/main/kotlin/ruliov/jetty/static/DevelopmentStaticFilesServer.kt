@@ -4,16 +4,12 @@ import org.eclipse.jetty.server.Request
 import ruliov.jetty.IHTTPMiddleware
 import java.io.InputStream
 
-class DevelopmentStaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPMiddleware {
-    override fun handle(request: Request, next: () -> Unit) {
-        val inputStream = resolver(request.requestURI)
+class DevelopmentStaticFilesServer(private var resolver: (String) -> InputStream?)
+        : IHTTPMiddleware, IStaticFilesServer {
+    override fun serveFile(fileName: String, request: Request): Boolean {
+        val inputStream = resolver(fileName) ?: return false
 
-        if (inputStream == null) {
-            next()
-            return
-        }
-
-        addMimeTypeHeaderByUrl(request)
+        addMimeTypeHeaderByFileName(fileName, request.response)
 
         val outputStream = request.response.outputStream
 
@@ -30,5 +26,7 @@ class DevelopmentStaticFilesServer(private var resolver: (String) -> InputStream
         }
 
         outputStream.close()
+
+        return true
     }
 }

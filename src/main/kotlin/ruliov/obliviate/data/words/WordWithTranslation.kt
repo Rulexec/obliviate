@@ -1,4 +1,4 @@
-package ruliov.obliviate.db
+package ruliov.obliviate.data.words
 
 data class WordWithTranslation(
         val wordId: Long,

@@ -36,7 +36,8 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.1.5.v20140505'
+    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.3.14.v20161028'
+    compile group: 'org.eclipse.jetty', name: 'jetty-client', version: '9.3.14.v20161028'
 
     runtime group: 'org.postgresql', name: 'postgresql', version: '9.3-1102-jdbc41'
 

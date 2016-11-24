@@ -1,7 +1,9 @@
 package ruliov
 
-import java.util.*
+import java.nio.charset.Charset
 import java.util.regex.Pattern
+
+val UTF8 = Charset.forName("UTF-8")
 
 fun ByteArray.toHexString(): String {
     val sb = StringBuilder(this.size * 2)
@@ -25,4 +27,12 @@ fun toJDBCUrl(url: String): String {
     val database = matcher.group(5)
 
     return "postgresql://$host:$port/$database?user=$user&password=$password"
+}
+
+fun handleError(error: Any) {
+    if (error is Throwable) {
+        error.printStackTrace()
+    } else {
+        System.err.println("authProvider.checkVk error: $error")
+    }
 }

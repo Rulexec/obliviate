@@ -1,9 +1,16 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
+import ruliov.data.EitherRight
 import ruliov.javadb.DBConnectionPool
+import ruliov.javadb.IDBConnectionFromPool
 import ruliov.javadb.IDBConnectionPool
+import ruliov.obliviate.data.users.LoginedUser
+import ruliov.obliviate.data.words.WordWith4TranslationVariants
+import ruliov.obliviate.data.words.WordWithTranslation
+import ruliov.toHexString
 import java.sql.Connection
+import java.sql.Date
 import java.util.*
 import java.util.regex.Pattern
 
@@ -28,35 +35,38 @@ class Database(jdbcDriver: String, dbUrl: String) {
         return this.pool.getConnection().bindToErrorFuture { catchFuture { it.use {
             val connection = it.getConnection()
 
-            val translationsMap = HashMap<String, String>()
+            data class Translation(val id: String, val text: String)
+            // wordId -> Translation
+            val translationsMap = HashMap<Long, Translation>()
 
             val statement = connection.createStatement()
-            var resultSet = statement.executeQuery("SELECT id, text FROM translations")
+            var resultSet = statement.executeQuery("SELECT id, \"wordId\", text FROM translations")
 
             while (resultSet.next()) {
-                val id = resultSet.getString(1)
-                val text = resultSet.getString(2)
+                val translationId = resultSet.getString(1)
+                val wordId = resultSet.getLong(2)
+                val text = resultSet.getString(3)
 
-                translationsMap[id] = text
+                translationsMap[wordId] = Translation(translationId, text)
             }
 
-            resultSet = statement.executeQuery("SELECT id, word, \"translationId\" FROM words")
+            resultSet = statement.executeQuery("SELECT id, text FROM words ORDER BY text")
 
             synchronized(this.wordsWithTranslations, {
                 this.wordsWithTranslations.clear()
                 this.wordById.clear()
 
                 while (resultSet.next()) {
-                    val id = resultSet.getLong(1)
-                    val word = resultSet.getString(2)
-                    val translationId = resultSet.getString(3)
+                    val wordId = resultSet.getLong(1)
+                    val wordText = resultSet.getString(2)
 
-                    val translation = translationsMap[translationId] ?: throw Exception("No translation for word $id")
+                    val translation = translationsMap[wordId] ?: throw Exception("No translation for word $wordId")
 
-                    val wordWithTranslation = WordWithTranslation(id, word, translationId, translation)
+                    val wordWithTranslation = WordWithTranslation(
+                        wordId, wordText, translation.id, translation.text)
 
                     this.wordsWithTranslations.add(wordWithTranslation)
-                    this.wordById[id] = wordWithTranslation
+                    this.wordById[wordId] = wordWithTranslation
                 }
             })
 
@@ -72,9 +82,7 @@ class Database(jdbcDriver: String, dbUrl: String) {
     }
 
     fun deleteWord(id: Long): IFuture<Any?> = this.getConnectionAndCatch {
-        val ps = it.prepareCall(
-            "WITH removedWord AS (DELETE FROM words WHERE id = ? RETURNING \"translationId\" AS tid)" +
-            "DELETE FROM translations WHERE id IN (SELECT tid FROM removedWord)")
+        val ps = it.prepareCall("DELETE FROM words WHERE id = ?")
         ps.setLong(1, id)
 
         val rows = ps.executeUpdate()
@@ -105,9 +113,8 @@ class Database(jdbcDriver: String, dbUrl: String) {
     fun updateWord(id: Long, wordText: String, translation: String): IFuture<Any?> =
             this.getConnectionAndCatch {
         val ps = it.prepareCall(
-            "UPDATE words SET word = ? WHERE id = ?;" +
-            "UPDATE translations SET text = ? FROM words WHERE " +
-                "translations.id = words.\"translationId\" AND words.id = ?;")
+            "UPDATE words SET text = ? WHERE id = ?;" +
+            "UPDATE translations SET text = ? WHERE \"wordId\" = ?;")
 
         ps.setString(1, wordText)
         ps.setLong(2, id)
@@ -150,13 +157,14 @@ class Database(jdbcDriver: String, dbUrl: String) {
             val connection = it.getConnection()
 
             val ps = connection.prepareStatement(
-                "WITH insertedWord AS " +
-                    "(INSERT INTO translations (text) VALUES (?) RETURNING id AS tid)\n" +
-                "INSERT INTO words (word, \"translationId\") VALUES " +
-                    "(?, (SELECT tid FROM insertedWord)) RETURNING id, \"translationId\"")
+"""WITH insertedWord AS
+    (INSERT INTO words (text) VALUES (?) RETURNING id AS wid)
+INSERT INTO translations (text, "wordId") VALUES
+    (?, (SELECT wid FROM insertedWord))
+RETURNING "wordId", id AS "translationId"""")
 
-            ps.setString(1, translation)
-            ps.setString(2, wordText)
+            ps.setString(1, wordText)
+            ps.setString(2, translation)
 
             val resultSet = ps.executeQuery()
             if (!resultSet.next()) throw Exception("SQL: no result")
@@ -216,4 +224,50 @@ class Database(jdbcDriver: String, dbUrl: String) {
     fun getWordTranslationId(wordId: Long): String? = synchronized(this.wordsWithTranslations, {
         return this.wordById[wordId]?.translationId
     })
+
+    // returns session token
+    fun vkAuthorization(vkUserId: Long, accessToken: String, vkExpiresIn: Long): IAsync<LoginedUser?, Any> =
+    this.pool.getConnection().success { catchAsync { it.use {
+        val connection = it.getConnection()
+
+        val userId: Long
+        val token: ByteArray
+        val expiresAt: Long
+
+        try {
+            connection.transactionIsolation = Connection.TRANSACTION_SERIALIZABLE
+            connection.autoCommit = false
+
+            val ps = connection.prepareStatement("""
+WITH updatedVk AS (UPDATE "usersVk" SET "accessToken" = ?, "expiresAt" = (timezone('UTC', now()) + ? * interval '1 second') WHERE "vkUserId" = ? RETURNING "userId" AS uid),
+     userCreated AS (INSERT INTO users SELECT WHERE NOT EXISTS (SELECT uid FROM updatedVk) RETURNING id AS "uidNew"),
+     vkCreated AS (INSERT INTO "usersVk" ("userId", "vkUserId", "accessToken", "expiresAt") SELECT "uidNew", ?, ?, (timezone('UTC', now()) + ? * interval '1 second') FROM userCreated),
+     uidTable AS ((SELECT uid FROM updatedVk) UNION (SELECT "uidNew" AS uid FROM userCreated))
+INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id AS "token", CAST(EXTRACT(EPOCH FROM "expiresAt") * 1000 AS BIGINT);""")
+
+            ps.setString(1, accessToken)
+            ps.setLong(2, vkExpiresIn)
+            ps.setLong(3, vkUserId)
+            ps.setLong(4, vkUserId)
+            ps.setString(5, accessToken)
+            ps.setLong(6, vkExpiresIn)
+
+            val resultSet = ps.executeQuery()
+            if (!resultSet.next()) throw Exception("SQL: no result")
+
+            userId = resultSet.getLong(1)
+            token = resultSet.getBytes(2)
+            expiresAt = resultSet.getLong(3)
+
+            connection.commit()
+        } finally {
+            connection.autoCommit = true
+        }
+
+        asyncResult<LoginedUser?, Any>(LoginedUser(
+            id = userId,
+            token = token.toHexString(),
+            expiresAt = expiresAt
+        ))
+    } } }
 }
