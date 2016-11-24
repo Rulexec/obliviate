@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <script>
+if (document.location.search !== '') {
+  let parameters = {};
+  
+  document.location.search.slice(1).split('&').forEach(x => {
+    let [key, value] = x.split('=', 2);
+    parameters[key] = value;
+  });
+
+  if (parameters.state === 'vk') {
+    if (window.opener !== null) {
+      window.opener.postMessage({
+        type: 'auth',
+        auth: 'vk',
+        code: parameters.code
+      }, document.location.protocol + '//' + document.location.host);
+    }
+  }
+}
+
+window.close();
+  </script>
+</head>
+
+<body>Если окно не закроется автоматически, закройте его.</body>
+</html>

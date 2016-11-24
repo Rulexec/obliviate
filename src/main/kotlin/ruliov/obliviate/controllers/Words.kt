@@ -43,12 +43,16 @@ fun deleteWordController(database: Database) = createControllerRespondsJSON { re
 
     val wordId = groups[0].toLong()
 
+    val asyncContext = request.startAsync()
+
     database.deleteWord(wordId).run {
         if (it == null) {
             request.response.writer.write("{\"error\":null}")
         } else {
             request.response.writer.write(it.toString())
         }
+
+        asyncContext.complete()
     }
 }
 
@@ -66,12 +70,16 @@ fun updateWordController(database: Database) = createControllerRespondsJSON { re
     val word = maybeParsed.first
     val translation = maybeParsed.second
 
+    val asyncContext = request.startAsync()
+
     database.updateWord(wordId, word, translation).run {
         if (it == null) {
             request.response.writer.write("{\"error\":null}")
         } else {
             request.response.writer.write(it.toString())
         }
+
+        asyncContext.complete()
     }
 }
 
@@ -85,8 +93,12 @@ fun createWordController(database: Database) = createControllerRespondsJSON { re
     val word = maybeParsed.first
     val translation = maybeParsed.second
 
+    val asyncContext = request.startAsync()
+
     database.createWord(word, translation).run { it.mapR({
         request.response.writer.write("{\"error\":null,\"id\":$it}")
+
+        asyncContext.complete()
     }, {
         if (it is Database.WordValidationError) {
             request.response.status = 400
@@ -96,6 +108,8 @@ fun createWordController(database: Database) = createControllerRespondsJSON { re
             request.response.writer.write("{\"error\":\"server\"}")
             System.err.println("Word creation error: $it")
         }
+
+        asyncContext.complete()
     }) }
 }
 

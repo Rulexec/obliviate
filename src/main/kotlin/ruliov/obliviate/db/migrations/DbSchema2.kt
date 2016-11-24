@@ -1,13 +1,22 @@
 package ruliov.obliviate.db.migrations
 
 fun main(args: Array<String>) = executeSQL("""
+CREATE OR REPLACE FUNCTION random_bytea(bytea_length integer)
+RETURNS bytea AS ${'$'}body${'$'}
+    SELECT decode(string_agg(lpad(to_hex(width_bucket(random(), 0, 1, 256)-1),2,'0') ,''), 'hex')
+    FROM generate_series(1, $1);
+${'$'}body${'$'}
+LANGUAGE 'sql'
+VOLATILE
+SET search_path = 'pg_catalog';
+
 CREATE TABLE "otherTranslations" (
     "wordId" integer NOT NULL,
     "translationId" uuid NOT NULL
 ) WITH ( OIDS=FALSE);
 
 CREATE TABLE sessions (
-    id bytea NOT NULL,
+    id bytea NOT NULL DEFAULT random_bytea(16),
     "userId" integer,
     "expiresAt" timestamp without time zone DEFAULT (timezone('UTC'::text, now()) + '14 days'::interval) NOT NULL
 ) WITH ( OIDS=FALSE);

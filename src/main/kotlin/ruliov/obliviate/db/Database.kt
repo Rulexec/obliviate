@@ -1,9 +1,16 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
+import ruliov.data.EitherRight
 import ruliov.javadb.DBConnectionPool
+import ruliov.javadb.IDBConnectionFromPool
 import ruliov.javadb.IDBConnectionPool
+import ruliov.obliviate.data.users.LoginedUser
+import ruliov.obliviate.data.words.WordWith4TranslationVariants
+import ruliov.obliviate.data.words.WordWithTranslation
+import ruliov.toHexString
 import java.sql.Connection
+import java.sql.Date
 import java.util.*
 import java.util.regex.Pattern
 
@@ -217,4 +224,50 @@ RETURNING "wordId", id AS "translationId"""")
     fun getWordTranslationId(wordId: Long): String? = synchronized(this.wordsWithTranslations, {
         return this.wordById[wordId]?.translationId
     })
+
+    // returns session token
+    fun vkAuthorization(vkUserId: Long, accessToken: String, vkExpiresIn: Long): IAsync<LoginedUser?, Any> =
+    this.pool.getConnection().success { catchAsync { it.use {
+        val connection = it.getConnection()
+
+        val userId: Long
+        val token: ByteArray
+        val expiresAt: Long
+
+        try {
+            connection.transactionIsolation = Connection.TRANSACTION_SERIALIZABLE
+            connection.autoCommit = false
+
+            val ps = connection.prepareStatement("""
+WITH updatedVk AS (UPDATE "usersVk" SET "accessToken" = ?, "expiresAt" = (timezone('UTC', now()) + ? * interval '1 second') WHERE "vkUserId" = ? RETURNING "userId" AS uid),
+     userCreated AS (INSERT INTO users SELECT WHERE NOT EXISTS (SELECT uid FROM updatedVk) RETURNING id AS "uidNew"),
+     vkCreated AS (INSERT INTO "usersVk" ("userId", "vkUserId", "accessToken", "expiresAt") SELECT "uidNew", ?, ?, (timezone('UTC', now()) + ? * interval '1 second') FROM userCreated),
+     uidTable AS ((SELECT uid FROM updatedVk) UNION (SELECT "uidNew" AS uid FROM userCreated))
+INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id AS "token", CAST(EXTRACT(EPOCH FROM "expiresAt") * 1000 AS BIGINT);""")
+
+            ps.setString(1, accessToken)
+            ps.setLong(2, vkExpiresIn)
+            ps.setLong(3, vkUserId)
+            ps.setLong(4, vkUserId)
+            ps.setString(5, accessToken)
+            ps.setLong(6, vkExpiresIn)
+
+            val resultSet = ps.executeQuery()
+            if (!resultSet.next()) throw Exception("SQL: no result")
+
+            userId = resultSet.getLong(1)
+            token = resultSet.getBytes(2)
+            expiresAt = resultSet.getLong(3)
+
+            connection.commit()
+        } finally {
+            connection.autoCommit = true
+        }
+
+        asyncResult<LoginedUser?, Any>(LoginedUser(
+            id = userId,
+            token = token.toHexString(),
+            expiresAt = expiresAt
+        ))
+    } } }
 }

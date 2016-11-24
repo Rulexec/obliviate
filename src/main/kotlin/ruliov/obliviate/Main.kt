@@ -11,6 +11,7 @@ import ruliov.jetty.IHTTPMiddleware
 import ruliov.jetty.JettyServer
 import ruliov.jetty.static.DevelopmentStaticFilesServer
 import ruliov.jetty.static.StaticFilesServer
+import ruliov.obliviate.auth.AuthProvider
 import ruliov.obliviate.controllers.*
 import ruliov.obliviate.db.Database
 import ruliov.toJDBCUrl
@@ -19,6 +20,10 @@ import java.util.regex.Pattern
 
 val LOCAL: Boolean = System.getenv("LOCAL") != null
 val PRODUCTION: Boolean = !LOCAL
+
+val OUR_URI = if (PRODUCTION)
+    "http://obliviate-332.heroku.com" else
+    "http://localhost:5001"
 
 fun main(args: Array<String>) {
     val DATABASE_URL =
@@ -30,8 +35,26 @@ fun main(args: Array<String>) {
         "jdbc:" + DATABASE_URL
     )
 
+    val authProvider = AuthProvider(database)
+
     database.loadData().bindErrorFuture { catchFuture {
+        val classLoader = ClassLoader.getSystemClassLoader()
+
+        val staticFilesServer = if (PRODUCTION)
+            StaticFilesServer({ s ->
+                classLoader.getResourceAsStream("static" + (if (s == "/") "/index.html" else s))
+            }) else
+            DevelopmentStaticFilesServer({ s ->
+                val file = File("/home/ruliov/projects/obliviate/frontend/static" +
+                    (if (s == "/") "/index.html" else s))
+                if (file.exists()) file.inputStream()
+                else null
+            })
+
         val router = HTTPRouter()
+
+        router.addRoute("GET", "/auth/vk", authVkController(staticFilesServer, authProvider))
+        router.addRoute("POST", "/log/in/vk", loginVk(authProvider))
 
         router.addRoute("GET", "/words/", getAllWordsController(database))
         router.addRoute("POST", "/words/", createWordController(database))
@@ -46,19 +69,7 @@ fun main(args: Array<String>) {
                 Pattern.compile("^/words/check/(\\d+)$"),
                 checkAndGetNextWordController(database))
 
-
         router.addRoute("GET", "/admin/resetdb", resetDbController(database))
-
-        val classLoader = ClassLoader.getSystemClassLoader()
-
-        val staticFilesServer = if (PRODUCTION)
-            StaticFilesServer({ s ->
-                classLoader.getResourceAsStream("static" + (if (s == "/") "/index.html" else s))
-            }) else
-            DevelopmentStaticFilesServer({ s ->
-                File("/home/ruliov/projects/obliviate/frontend/static" +
-                        (if (s == "/") "/index.html" else s)).inputStream()
-            })
 
         val handler = object : IHTTPMiddleware {
             override fun handle(request: Request, next: () -> Unit) {

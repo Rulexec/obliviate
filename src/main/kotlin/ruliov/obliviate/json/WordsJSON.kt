@@ -1,7 +1,7 @@
 package ruliov.obliviate.json
 
-import ruliov.obliviate.db.WordWith4TranslationVariants
-import ruliov.obliviate.db.WordWithTranslation
+import ruliov.obliviate.data.words.WordWith4TranslationVariants
+import ruliov.obliviate.data.words.WordWithTranslation
 
 fun WordWith4TranslationVariants.toJSON(): String {
     // {"wordId": 42, "word": "word", "choices": [{"id": 1, "value": "кошка"}, ... 3 more]}

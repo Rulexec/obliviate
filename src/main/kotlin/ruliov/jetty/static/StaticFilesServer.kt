@@ -8,22 +8,18 @@ import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPOutputStream
 
-class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPMiddleware {
+class StaticFilesServer(private var resolver: (String) -> InputStream?)
+        : IHTTPMiddleware, IStaticFilesServer {
     private data class CachedFile(val bytes: ByteArray, val etag: String)
     // TODO: better to inject cache in resolver, but I don't want implement InputStream
     private val cache = ConcurrentHashMap<String, CachedFile>()
 
-    override fun handle(request: Request, next: () -> Unit) {
-        var cached = cache[request.requestURI]
+    override fun serveFile(fileName: String, request: Request): Boolean {
+        var cached = cache[fileName]
         val bytes: ByteArray
 
         if (cached == null) {
-            val inputStream = resolver(request.requestURI)
-
-            if (inputStream == null) {
-                next()
-                return
-            }
+            val inputStream = resolver(request.requestURI) ?: return false
 
             bytes = inputStream.toByteArray()
             val md = MessageDigest.getInstance("MD5")
@@ -41,10 +37,10 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
 
         if (request.getHeader("If-None-Match")?.equals(cached.etag) ?: false) {
             request.response.setStatusWithReason(304, "Not Modified")
-            return
+            return true
         }
 
-        addMimeTypeHeaderByUrl(request)
+        addMimeTypeHeaderByFileName(request.requestURI, request.response)
         request.response.setHeader("Cache-Control", "public, must-revalidate")
         request.response.setHeader("ETag", cached.etag)
 
@@ -60,5 +56,7 @@ class StaticFilesServer(private var resolver: (String) -> InputStream?) : IHTTPM
         }
 
         request.response.closeOutput()
+
+        return true
     }
 }

@@ -38,6 +38,10 @@ function DataProvider(options) {
     return fetchJSON('words/', { method: 'POST', body: JSON.stringify([word, translation]) });
   }
 
+  this.loginVk = function(data) {
+    return fetchJSON('log/in/vk', { method: 'POST', body: JSON.stringify(data) });
+  }
+
   function fetchJSON() {
     return fetch.apply(null, arguments).then(response => {
       if (response.status in {'200': true, '400': true}) {

@@ -19,6 +19,7 @@ class Header extends React.Component {
         {leftItems}
         <div className='right menu'>
           {rightItems}
+          <a className='item login' onClick={this.props.onLogin.bind(this.props)}><span>Войти</span></a>
         </div>
       </div>
     );

@@ -74,8 +74,30 @@ function start() {
   document.getElementById('loading').style.display = 'none';
   router.start();
 
+  window.addEventListener('message', function(event) {
+    let data = event.data;
+
+    if (data !== undefined && data.type === 'auth') {
+      if (data.auth === 'vk' && typeof data.code === 'string') {
+        // TODO: block login button/show spinner
+        dataProvider.loginVk({code: data.code}).then(loginData => {
+          if (!loginData.error) {
+            console.log(loginData);
+            // success login
+          } else {
+            console.log('login failed');
+            console.error(loginData);
+          }
+        });
+      }
+    }
+  });
+
   function renderHeader(props) {
     props || (props = {});
+
+// https://oauth.vk.com/authorize?client_id=5740564&display=popup&scope=0&response_type=code&v=5.60&redirect_uri=http://localhost/
+// https://vk.com/dev/auth_sites
 
     let defaultProps = {
       onMenuItemSelected: menuItem => {
@@ -92,6 +114,18 @@ function start() {
           default: throw 'unknown menu item: ' + menuItem
           }
         });
+      },
+
+      onLogin: () => {
+        let uri = document.location.protocol + '//' + document.location.host + '/auth/vk';
+
+        let authUri = 'https://oauth.vk.com/authorize?client_id=5740564' +
+                      '&state=vk' +
+                      '&display=popup&scope=0&response_type=code&v=5.60&redirect_uri=' + uri;
+
+        let left = (window.screen.width - 600) / 2,
+            top = (window.screen.height - 400) / 2;
+        window.open(authUri, '_blank', `width=600,height=400,left=${left},top=${top}`);
       }
     };
 
