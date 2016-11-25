@@ -6,6 +6,7 @@ import org.json.JSONTokener
 import ruliov.data.mapR
 import ruliov.jetty.createControllerRespondsJSON
 import ruliov.jetty.createControllerRespondsJSONDontCaches
+import ruliov.obliviate.LOG
 import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toCompactJSON
 import ruliov.obliviate.json.toJSON
@@ -49,7 +50,8 @@ fun deleteWordController(database: Database) = createControllerRespondsJSON { re
         if (it == null) {
             request.response.writer.write("{\"error\":null}")
         } else {
-            request.response.writer.write(it.toString())
+            LOG.error("Word deletion:", it)
+            respond500(request)
         }
 
         asyncContext.complete()
@@ -76,7 +78,8 @@ fun updateWordController(database: Database) = createControllerRespondsJSON { re
         if (it == null) {
             request.response.writer.write("{\"error\":null}")
         } else {
-            request.response.writer.write(it.toString())
+            LOG.error("Word update:", it)
+            respond500(request)
         }
 
         asyncContext.complete()
@@ -106,7 +109,7 @@ fun createWordController(database: Database) = createControllerRespondsJSON { re
         } else {
             request.response.status = 500
             request.response.writer.write("{\"error\":\"server\"}")
-            System.err.println("Word creation error: $it")
+            LOG.error("Word creation error:", it)
         }
 
         asyncContext.complete()

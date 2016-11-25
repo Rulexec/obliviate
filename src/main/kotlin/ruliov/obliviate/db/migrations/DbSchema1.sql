@@ -1,8 +1,3 @@
-@file:JvmName("DbSchema1")
-
-package ruliov.obliviate.db.migrations
-
-fun main(args: Array<String>) = executeSQL("""
 CREATE TABLE translations
 (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -14,7 +9,7 @@ CREATE SEQUENCE words_id_seq
   INCREMENT 1
   MINVALUE 1
   MAXVALUE 9223372036854775807
-  START 0
+  START 1
   CACHE 1;
 
 CREATE TABLE words
@@ -27,4 +22,3 @@ CREATE TABLE words
       REFERENCES public.translations (id) MATCH SIMPLE
       ON UPDATE RESTRICT ON DELETE RESTRICT
 ) WITH ( OIDS=FALSE );
-""")

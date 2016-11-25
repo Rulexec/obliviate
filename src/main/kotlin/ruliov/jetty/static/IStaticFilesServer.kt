@@ -1,7 +1,6 @@
 package ruliov.jetty.static
 
 import org.eclipse.jetty.server.Request
-import org.eclipse.jetty.server.Response
 import ruliov.jetty.IHTTPMiddleware
 
 interface IStaticFilesServer : IHTTPMiddleware {

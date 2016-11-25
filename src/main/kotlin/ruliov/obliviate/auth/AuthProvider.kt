@@ -2,6 +2,7 @@ package ruliov.obliviate.auth
 
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.util.ssl.SslContextFactory
+import org.json.JSONException
 import org.json.JSONObject
 import org.json.JSONTokener
 import ruliov.UTF8
@@ -10,15 +11,16 @@ import ruliov.async.createAsync
 import ruliov.data.EitherLeft
 import ruliov.data.EitherRight
 import ruliov.data.IEither
+import ruliov.logs.LogLevel
+import ruliov.obliviate.LOG
 import ruliov.obliviate.OUR_URI
+import ruliov.obliviate.VK_SECRET
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.db.Database
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
-
-private val VK_SECRET = System.getenv("VK_SECRET")
 
 class AuthProvider(private val database: Database) {
     private sealed class CheckStatus {
@@ -40,8 +42,10 @@ class AuthProvider(private val database: Database) {
             override fun run() {
                 // TODO: Actually, we need to remove only old codes, but... later
                 vkCodes.clear()
+
+                LOG.info("VK-CODES-AUTODELETE finished")
             }
-        }, 5000, 5000)
+        }, 60 * 60 * 1000, 60 * 60 * 1000)
     }
 
     fun checkVk(code: String): IAsync<LoginedUser?, Any> = createAsync {
@@ -52,15 +56,21 @@ class AuthProvider(private val database: Database) {
         var start = false
         var awaiters: ConcurrentLinkedQueue<(IEither<Any, LoginedUser?>) -> Unit>? = null
 
+        LOG.trace("VK-CODES $code")
+
         this.vkCodes.compute(code, {c, checkStatus ->
             if (checkStatus != null) {
                 when (checkStatus) {
                     is CheckStatus.Finished -> {
                         result = checkStatus.result
                         resultIsResult = true
+
+                        LOG.trace("VK-CODES $code checkStatus is Finished")
                     }
                     is CheckStatus.NotFinishedYet -> {
                         checkStatus.awaiters.add(callback)
+
+                        LOG.trace("VK-CODES $code checkStatus is NotFinishedYet")
                     }
                 }
 
@@ -88,7 +98,11 @@ class AuthProvider(private val database: Database) {
                 this.vkCodes.remove(code)
             }
 
-            awaiters?.forEach { it(result) }
+            var count = 0
+
+            awaiters?.forEach { it(result); count++ }
+
+            LOG.trace("VK-CODES $code awaiters count: $count")
         }
 
         if (start) {
@@ -99,10 +113,14 @@ class AuthProvider(private val database: Database) {
 
             val sb = StringBuilder()
 
+            LOG.trace("VK-CODES $code make http request")
+
             this.httpClient.newRequest(uri).onResponseContent { response, byteBuffer ->
                 sb.append(String(byteBuffer.array(), UTF8))
             }.timeout(4, TimeUnit.SECONDS
             ).send {
+                LOG.trace("VK-CODES $code http request finished")
+
                 try {
                     if (sb.isNotEmpty()) {
                         val jsonTokener: JSONTokener
@@ -112,6 +130,8 @@ class AuthProvider(private val database: Database) {
                         jsonObject = JSONObject(jsonTokener)
 
                         if (jsonObject.has("error")) {
+                            LOG.warn("VK-CODES $code vkError: $jsonObject")
+
                             val error = jsonObject.getString("error")
                             if (error == "invalid_grant") {
                                 notifyAwaiters(EitherRight(null))
@@ -124,6 +144,8 @@ class AuthProvider(private val database: Database) {
                         val isValid = jsonObject.has("user_id") && jsonObject.has("access_token")
 
                         if (!isValid) {
+                            LOG.warn("VK-CODES $code vk invalid response: $jsonObject")
+
                             notifyAwaiters(EitherLeft(jsonObject))
                             return@send
                         }
@@ -138,9 +160,19 @@ class AuthProvider(private val database: Database) {
 
                         database.vkAuthorization(userId, accessToken, expiresIn).run(::notifyAwaiters)
                     } else {
+                        LOG.warn("VK-CODES $code request error:", it.failure)
+
                         notifyAwaiters(EitherLeft(it.failure))
                     }
                 } catch (e: Throwable) {
+                    LOG.log(
+                        if (e is JSONException)
+                        LogLevel.WARNING else
+                        LogLevel.ERROR,
+
+                        "VK-CODES $code exception:", e
+                    )
+
                     notifyAwaiters(EitherLeft(e))
                 }
             }

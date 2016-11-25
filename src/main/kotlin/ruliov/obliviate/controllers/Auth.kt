@@ -1,14 +1,11 @@
 package ruliov.obliviate.controllers
 
-import org.json.JSONTokener
-import ruliov.data.mapR
-import ruliov.handleError
 import ruliov.jetty.IHTTPController
 import ruliov.jetty.createController
 import ruliov.jetty.createControllerRespondsJSON
 import ruliov.jetty.static.IStaticFilesServer
+import ruliov.obliviate.LOG
 import ruliov.obliviate.auth.AuthProvider
-import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toJSON
 
 fun authVkController(staticFilesServer:IStaticFilesServer, authProvider: AuthProvider): IHTTPController =
@@ -18,7 +15,7 @@ createController { request, groups ->
     val code = request.getParameter("code") ?: return@createController
 
     authProvider.checkVk(code).run {
-        if (it.isLeft()) handleError(it.left())
+        if (it.isLeft()) LOG.error("checkVk(code):", it)
     }
 }
 
@@ -38,35 +35,10 @@ fun loginVk(authProvider: AuthProvider) = createControllerRespondsJSON { request
                 request.response.writer.write("""{"error":"bad-auth"}""")
             }
         } else {
-            handleError(it.left())
-
-            request.response.status = 500
-            request.response.writer.write("""{"error":"500"}""")
+            LOG.error("checkVk(code):", it)
+            respond500(request)
         }
 
         asyncContext.complete()
     }
-
-
-    /*val maybeParsed = extractTwoStringsFromJSONArray(request.inputStream)
-    if (maybeParsed == null) {
-        request.response.status = 400
-        return@createControllerRespondsJSON
-    }
-
-    val word = maybeParsed.first
-    val translation = maybeParsed.second
-
-    database.createWord(word, translation).run { it.mapR({
-        request.response.writer.write("{\"error\":null,\"id\":$it}")
-    }, {
-        if (it is Database.WordValidationError) {
-            request.response.status = 400
-            request.response.writer.write("{\"error\":\"validation\"}")
-        } else {
-            request.response.status = 500
-            request.response.writer.write("{\"error\":\"server\"}")
-            System.err.println("Word creation error: $it")
-        }
-    }) }*/
 }

@@ -28,11 +28,3 @@ fun toJDBCUrl(url: String): String {
 
     return "postgresql://$host:$port/$database?user=$user&password=$password"
 }
-
-fun handleError(error: Any) {
-    if (error is Throwable) {
-        error.printStackTrace()
-    } else {
-        System.err.println("authProvider.checkVk error: $error")
-    }
-}

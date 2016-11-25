@@ -1,30 +1,46 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
-import ruliov.data.EitherRight
 import ruliov.javadb.DBConnectionPool
-import ruliov.javadb.IDBConnectionFromPool
 import ruliov.javadb.IDBConnectionPool
+import ruliov.obliviate.LOG
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.data.words.WordWith4TranslationVariants
 import ruliov.obliviate.data.words.WordWithTranslation
 import ruliov.toHexString
 import java.sql.Connection
-import java.sql.Date
 import java.util.*
 import java.util.regex.Pattern
 
-class Database(jdbcDriver: String, dbUrl: String) {
+class Database(dbUrl: String) {
     private val random: Random = Random()
 
     private val pool: IDBConnectionPool
     private val wordsWithTranslations = ArrayList<WordWithTranslation>()
     private val wordById = HashMap<Long, WordWithTranslation>()
 
-    init {
-        Class.forName(jdbcDriver)
+    private val timer = Timer(true)
 
+    init {
         this.pool = DBConnectionPool(1, dbUrl)
+
+        timer.schedule(object : TimerTask() {
+            override fun run() {
+                LOG.info("OLD-SESSIONS-AUTODELETE started")
+
+                this@Database.getConnectionAndCatch {
+                    it.prepareStatement(
+                        """DELETE FROM sessions WHERE "expiresAt" < timezone('UTC', now())"""
+                    ).execute()
+
+                    LOG.info("OLD-SESSIONS-AUTODELETE finished")
+
+                    createFuture<Any?>(null)
+                }.run {
+                    if (it != null) LOG.error("OLD-SESSIONS-AUTODELETE failed:", it)
+                }
+            }
+        }, 5 * 60 * 1000, 60 * 60 * 1000)
     }
 
     private fun getConnectionAndCatch(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {
@@ -50,6 +66,8 @@ class Database(jdbcDriver: String, dbUrl: String) {
                 translationsMap[wordId] = Translation(translationId, text)
             }
 
+            LOG.trace("DB-LOADDATA translations received")
+
             resultSet = statement.executeQuery("SELECT id, text FROM words ORDER BY text")
 
             synchronized(this.wordsWithTranslations, {
@@ -69,6 +87,8 @@ class Database(jdbcDriver: String, dbUrl: String) {
                     this.wordById[wordId] = wordWithTranslation
                 }
             })
+
+            LOG.trace("DB-LOADDATA words received")
 
             createFuture<Any?>(null)
         } } }
@@ -131,7 +151,7 @@ class Database(jdbcDriver: String, dbUrl: String) {
                     word.word = wordText
                     word.translation = translation
                 } else {
-                    System.err.println("Word $id not in memory")
+                    LOG.error("Word $id not in memory")
                 }
             })
 
