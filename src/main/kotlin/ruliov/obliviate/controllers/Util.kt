@@ -34,6 +34,11 @@ fun getStringFromJSONOrRespond400(request: Request, jsonObject: JSONObject, key:
 
 fun respond400(request: Request, reason: String = "not-specified") {
     request.response.status = 400
-    request.response.writer.write("""{"error":"parse"}""")
+    request.response.writer.write("""{"error":"$reason"}""")
+    request.response.closeOutput()
+}
+fun respond500(request: Request) {
+    request.response.status = 500
+    request.response.writer.write("""{"error":"500"}""")
     request.response.closeOutput()
 }

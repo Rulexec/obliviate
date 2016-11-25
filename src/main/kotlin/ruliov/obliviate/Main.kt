@@ -10,6 +10,8 @@ import ruliov.jetty.IHTTPMiddleware
 import ruliov.jetty.JettyServer
 import ruliov.jetty.static.DevelopmentStaticFilesServer
 import ruliov.jetty.static.StaticFilesServer
+import ruliov.logs.JettyLogger
+import ruliov.logs.Logger
 import ruliov.obliviate.auth.AuthProvider
 import ruliov.obliviate.controllers.*
 import ruliov.obliviate.db.Database
@@ -26,7 +28,7 @@ val OUR_URI = if (PRODUCTION)
 
 val JDBC_DATABASE_URL =
     "jdbc:" + toJDBCUrl(System.getenv("JDBC_DATABASE_URL") ?:
-                        "postgres://ruliov:ruliov@localhost:5432/obliviate1")
+                        "postgres://ruliov:ruliov@localhost:5432/obliviate")
 
 val JDBC_DRIVER = "org.postgresql.Driver"
 fun initJDBCDriver() {
@@ -37,14 +39,22 @@ val PORT = System.getenv("PORT")?.toInt() ?: 5000
 
 val VK_SECRET: String = System.getenv("VK_SECRET") ?: throw IllegalStateException("No VK_SECRET env")
 
+val LOG = Logger()
+
 fun main(args: Array<String>) {
+    org.eclipse.jetty.util.log.Log.setLog(JettyLogger())
+
     initJDBCDriver()
 
     val database = Database(JDBC_DATABASE_URL)
 
     val authProvider = AuthProvider(database)
 
+    LOG.trace("Before database.loadData()")
+
     database.loadData().bindAnyErrorFuture {
+        LOG.info("Data is loaded")
+
         val classLoader = ClassLoader.getSystemClassLoader()
 
         val staticFilesServer = if (PRODUCTION)
@@ -87,20 +97,19 @@ fun main(args: Array<String>) {
 
         val server = JettyServer(handler, PORT)
 
+        LOG.info("Starting server at port $PORT")
+
         server.start()
         server.join()
 
         createFuture<Any?>(null)
     }.run {
         if (it == null) {
-            println("Graceful shutdown")
+            LOG.info("Graceful shutdown")
         } else {
-            if (it is Throwable) {
-                it.printStackTrace()
-            } else {
-                System.err.println(it)
-                System.exit(1)
-            }
+            LOG.fatal(it)
+            LOG.sync()
+            System.exit(1)
         }
     }
 }

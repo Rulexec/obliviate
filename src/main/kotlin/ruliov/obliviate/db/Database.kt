@@ -1,9 +1,9 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
-import ruliov.handleError
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
+import ruliov.obliviate.LOG
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.data.words.WordWith4TranslationVariants
 import ruliov.obliviate.data.words.WordWithTranslation
@@ -26,14 +26,18 @@ class Database(dbUrl: String) {
 
         timer.schedule(object : TimerTask() {
             override fun run() {
+                LOG.info("OLD-SESSIONS-AUTODELETE started")
+
                 this@Database.getConnectionAndCatch {
                     it.prepareStatement(
                         """DELETE FROM sessions WHERE "expiresAt" < timezone('UTC', now())"""
                     ).execute()
 
+                    LOG.info("OLD-SESSIONS-AUTODELETE finished")
+
                     createFuture<Any?>(null)
                 }.run {
-                    if (it != null) handleError(it)
+                    if (it != null) LOG.error("OLD-SESSIONS-AUTODELETE failed:", it)
                 }
             }
         }, 5 * 60 * 1000, 60 * 60 * 1000)
@@ -62,6 +66,8 @@ class Database(dbUrl: String) {
                 translationsMap[wordId] = Translation(translationId, text)
             }
 
+            LOG.trace("DB-LOADDATA translations received")
+
             resultSet = statement.executeQuery("SELECT id, text FROM words ORDER BY text")
 
             synchronized(this.wordsWithTranslations, {
@@ -81,6 +87,8 @@ class Database(dbUrl: String) {
                     this.wordById[wordId] = wordWithTranslation
                 }
             })
+
+            LOG.trace("DB-LOADDATA words received")
 
             createFuture<Any?>(null)
         } } }
@@ -143,7 +151,7 @@ class Database(dbUrl: String) {
                     word.word = wordText
                     word.translation = translation
                 } else {
-                    System.err.println("Word $id not in memory")
+                    LOG.error("Word $id not in memory")
                 }
             })
 
