@@ -1,30 +1,42 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
-import ruliov.data.EitherRight
+import ruliov.handleError
 import ruliov.javadb.DBConnectionPool
-import ruliov.javadb.IDBConnectionFromPool
 import ruliov.javadb.IDBConnectionPool
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.data.words.WordWith4TranslationVariants
 import ruliov.obliviate.data.words.WordWithTranslation
 import ruliov.toHexString
 import java.sql.Connection
-import java.sql.Date
 import java.util.*
 import java.util.regex.Pattern
 
-class Database(jdbcDriver: String, dbUrl: String) {
+class Database(dbUrl: String) {
     private val random: Random = Random()
 
     private val pool: IDBConnectionPool
     private val wordsWithTranslations = ArrayList<WordWithTranslation>()
     private val wordById = HashMap<Long, WordWithTranslation>()
 
-    init {
-        Class.forName(jdbcDriver)
+    private val timer = Timer(true)
 
+    init {
         this.pool = DBConnectionPool(1, dbUrl)
+
+        timer.schedule(object : TimerTask() {
+            override fun run() {
+                this@Database.getConnectionAndCatch {
+                    it.prepareStatement(
+                        """DELETE FROM sessions WHERE "expiresAt" < timezone('UTC', now())"""
+                    ).execute()
+
+                    createFuture<Any?>(null)
+                }.run {
+                    if (it != null) handleError(it)
+                }
+            }
+        }, 5 * 60 * 1000, 60 * 60 * 1000)
     }
 
     private fun getConnectionAndCatch(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {

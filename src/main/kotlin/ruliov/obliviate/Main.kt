@@ -3,8 +3,7 @@
 package ruliov.obliviate
 
 import org.eclipse.jetty.server.Request
-import ruliov.async.bindErrorFuture
-import ruliov.async.catchFuture
+import ruliov.async.bindAnyErrorFuture
 import ruliov.async.createFuture
 import ruliov.jetty.HTTPRouter
 import ruliov.jetty.IHTTPMiddleware
@@ -25,19 +24,27 @@ val OUR_URI = if (PRODUCTION)
     "https://obliviate-332.herokuapp.com" else
     "http://localhost:5001"
 
-fun main(args: Array<String>) {
-    val DATABASE_URL =
-            toJDBCUrl(System.getenv("DATABASE_URL") ?:
-            "postgres://ruliov:ruliov@localhost:5432/obliviate1")
+val JDBC_DATABASE_URL =
+    "jdbc:" + toJDBCUrl(System.getenv("JDBC_DATABASE_URL") ?:
+                        "postgres://ruliov:ruliov@localhost:5432/obliviate1")
 
-    val database = Database(
-        "org.postgresql.Driver",
-        "jdbc:" + DATABASE_URL
-    )
+val JDBC_DRIVER = "org.postgresql.Driver"
+fun initJDBCDriver() {
+    Class.forName(JDBC_DRIVER)
+}
+
+val PORT = System.getenv("PORT")?.toInt() ?: 5000
+
+val VK_SECRET: String = System.getenv("VK_SECRET") ?: throw IllegalStateException("No VK_SECRET env")
+
+fun main(args: Array<String>) {
+    initJDBCDriver()
+
+    val database = Database(JDBC_DATABASE_URL)
 
     val authProvider = AuthProvider(database)
 
-    database.loadData().bindErrorFuture { catchFuture {
+    database.loadData().bindAnyErrorFuture {
         val classLoader = ClassLoader.getSystemClassLoader()
 
         val staticFilesServer = if (PRODUCTION)
@@ -62,7 +69,7 @@ fun main(args: Array<String>) {
         router.addRoute("DELETE",
                 Pattern.compile("^/words/(\\d+)$"),
                 deleteWordController(database))
-        router.addRoute("POST", Pattern.compile("^/words/(\\d+)$"), updateWordController(database));
+        router.addRoute("POST", Pattern.compile("^/words/(\\d+)$"), updateWordController(database))
 
         router.addRoute("GET", "/words/random", getRandomWordController(database))
         router.addRoute("POST",
@@ -78,15 +85,13 @@ fun main(args: Array<String>) {
             }
         }
 
-        val PORT = System.getenv("PORT")?.toInt() ?: 5000
-
         val server = JettyServer(handler, PORT)
 
         server.start()
         server.join()
 
         createFuture<Any?>(null)
-    } }.run {
+    }.run {
         if (it == null) {
             println("Graceful shutdown")
         } else {

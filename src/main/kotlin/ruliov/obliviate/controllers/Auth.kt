@@ -1,14 +1,11 @@
 package ruliov.obliviate.controllers
 
-import org.json.JSONTokener
-import ruliov.data.mapR
 import ruliov.handleError
 import ruliov.jetty.IHTTPController
 import ruliov.jetty.createController
 import ruliov.jetty.createControllerRespondsJSON
 import ruliov.jetty.static.IStaticFilesServer
 import ruliov.obliviate.auth.AuthProvider
-import ruliov.obliviate.db.Database
 import ruliov.obliviate.json.toJSON
 
 fun authVkController(staticFilesServer:IStaticFilesServer, authProvider: AuthProvider): IHTTPController =

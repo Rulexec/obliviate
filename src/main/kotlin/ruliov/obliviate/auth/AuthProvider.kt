@@ -11,14 +11,13 @@ import ruliov.data.EitherLeft
 import ruliov.data.EitherRight
 import ruliov.data.IEither
 import ruliov.obliviate.OUR_URI
+import ruliov.obliviate.VK_SECRET
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.db.Database
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
-
-private val VK_SECRET = System.getenv("VK_SECRET")
 
 class AuthProvider(private val database: Database) {
     private sealed class CheckStatus {
@@ -41,7 +40,7 @@ class AuthProvider(private val database: Database) {
                 // TODO: Actually, we need to remove only old codes, but... later
                 vkCodes.clear()
             }
-        }, 5000, 5000)
+        }, 60 * 60 * 1000, 60 * 60 * 1000)
     }
 
     fun checkVk(code: String): IAsync<LoginedUser?, Any> = createAsync {

@@ -1,6 +1,5 @@
 package ruliov.jetty.static
 
-import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Response
 
 fun addMimeTypeHeaderByFileName(fileName: String, response: Response): Unit {
