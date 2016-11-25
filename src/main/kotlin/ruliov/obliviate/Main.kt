@@ -22,7 +22,7 @@ val LOCAL: Boolean = System.getenv("LOCAL") != null
 val PRODUCTION: Boolean = !LOCAL
 
 val OUR_URI = if (PRODUCTION)
-    "http://obliviate-332.heroku.com" else
+    "https://obliviate-332.herokuapp.com" else
     "http://localhost:5001"
 
 fun main(args: Array<String>) {
