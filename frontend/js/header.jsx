@@ -4,11 +4,21 @@ class Header extends React.Component {
   render() {
     let self = this;
 
+    function onClick(id) {
+      if (!self.props.menuItemIsEnabled[id]) return null;
+      else return function(event) {
+        if (event.button !== 0) return;
+
+        self.props.onMenuItemSelected.call(self.props, id);
+      };
+    }
+
     function createItem([id, text]) {
       return <a key={id}
+                href={'#' + id}
                 className={'item' + (self.props.menuItemIsEnabled[id] ? '' : ' disabled') +
                                     (self.props.menuItemIsActive[id] ? ' active' : '')}
-                onClick={self.props.menuItemIsEnabled[id] ? self.props.onMenuItemSelected.bind(null, id) : null}>{text}</a>
+                onClick={onClick(id)}>{text}</a>
     }
 
     let leftItems = [
