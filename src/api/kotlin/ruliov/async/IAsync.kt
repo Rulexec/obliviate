@@ -37,8 +37,16 @@ inline fun <R, reified E> createAsync(crossinline run:((IEither<E, R>) -> Unit) 
     }
 }
 
-inline fun <R, reified E> asyncResult(result: R): IAsync<R, E> = createAsync { it(EitherRight(result)) }
-inline fun <R, reified E> asyncError(error: E): IAsync<R, E> = createAsync { it(EitherLeft(error)) }
+inline fun <R, E> asyncResult(result: R): IAsync<R, E> {
+    return object : IAsync<R, E> {
+        override fun run(handler: (IEither<E, R>) -> Unit) = handler(EitherRight(result))
+    }
+}
+inline fun <R, E> asyncError(error: E): IAsync<R, E> {
+    return object : IAsync<R, E> {
+        override fun run(handler: (IEither<E, R>) -> Unit) = handler(EitherLeft(error))
+    }
+}
 
 inline fun <R, reified E, NR> IAsync<R, E>.success(crossinline success: (R) -> IAsync<NR, E>): IAsync<NR, E> {
     return createAsync {
