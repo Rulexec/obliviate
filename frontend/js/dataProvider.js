@@ -42,12 +42,16 @@ function DataProvider(options) {
     return fetchJSON('log/in/vk', { method: 'POST', body: JSON.stringify(data) });
   }
 
+  this.logout = function(token) {
+    return fetchJSON('log/out', { method: 'POST', body: token });
+  }
+
   function fetchJSON() {
     return fetch.apply(null, arguments).then(response => {
-      if (response.status in {'200': true, '400': true}) {
+      if (response.status === 200) {
         return response.json();
       } else {
-        return Promise.reject(['status not 200,400', response]);
+        return Promise.reject(response.json());
       }
     });
   }

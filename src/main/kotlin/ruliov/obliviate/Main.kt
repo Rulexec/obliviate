@@ -71,7 +71,8 @@ fun main(args: Array<String>) {
         val router = HTTPRouter()
 
         router.addRoute("GET", "/auth/vk", authVkController(staticFilesServer, authProvider))
-        router.addRoute("POST", "/log/in/vk", loginVk(authProvider))
+        router.addRoute("POST", "/log/in/vk", loginVkController(authProvider))
+        router.addRoute("POST", "/log/out", logoutController(database))
 
         router.addRoute("GET", "/words/", getAllWordsController(database))
         router.addRoute("POST", "/words/", createWordController(database))
@@ -90,8 +91,14 @@ fun main(args: Array<String>) {
 
         val handler = object : IHTTPMiddleware {
             override fun handle(request: Request, next: () -> Unit) {
+                LOG.trace("HTTP ${request.method} ${request.requestURI}")
+
                 val isRouted = router.route(request)
-                if (!isRouted) staticFilesServer.handle(request, next)
+                if (!isRouted) staticFilesServer.handle(request) {
+                    LOG.info("404 ${request.requestURI}")
+                    request.response.status = 404
+                    request.response.writer.write("404")
+                }
             }
         }
 

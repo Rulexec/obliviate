@@ -12,6 +12,22 @@ fun ByteArray.toHexString(): String {
 
     return sb.toString()
 }
+private inline fun Char.hexToInt(): Int {
+    if (this <= '9') return this - '0'
+    else return this - 'a' + 10
+}
+fun String.hexToByteArray(): ByteArray {
+    val array = ByteArray(this.length / 2)
+
+    for (i in 0..(this.length / 2 - 1)) {
+        val a = this[2 * i]
+        val b = this[2 * i + 1]
+
+        array[i] = (a.hexToInt() * 16 + b.hexToInt()).toByte()
+    }
+
+    return array
+}
 
 private val pattern = Pattern.compile("^postgres://(.+):(.+)@(.+):(\\d+)/(.+)$")
 fun toJDBCUrl(url: String): String {

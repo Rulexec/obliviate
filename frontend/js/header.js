@@ -9,6 +9,12 @@ exports.Header = Header;
 function Header(options) {
   let self = this;
 
+  let el = options.el,
+      getUser = options.getUser,
+      getUnmountHandler = options.getUnmountHandler,
+      onLogout = options.onLogout,
+      router = options.router;
+
   let headerButtonsState = {
     menuItemIsEnabled: {},
     menuItemIsActive: {}
@@ -26,6 +32,7 @@ function Header(options) {
   this.chooseMenuItem('home');
 
   let headerProps = {
+    loginButtonEnabled: true
   };
 
   let onLogin = debounce(() => {
@@ -63,11 +70,17 @@ function Header(options) {
         });
       },
 
-      onLogin: onLogin
+      onLogin: onLogin,
+      onLogout: onLogout
     };
 
     let mixedProps = Object.assign({}, defaultProps, headerButtonsState, headerProps);
 
     ReactDOM.render(React.createElement(HeaderReact, mixedProps), options.el);
   }
+
+  this.loginButtonEnable = (flag) => {
+    headerProps.loginButtonEnabled = flag;
+    self.render();
+  };
 }

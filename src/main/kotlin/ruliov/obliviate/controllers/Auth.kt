@@ -1,11 +1,14 @@
 package ruliov.obliviate.controllers
 
+import ruliov.UTF8
 import ruliov.jetty.IHTTPController
 import ruliov.jetty.createController
 import ruliov.jetty.createControllerRespondsJSON
 import ruliov.jetty.static.IStaticFilesServer
+import ruliov.jetty.static.toByteArray
 import ruliov.obliviate.LOG
 import ruliov.obliviate.auth.AuthProvider
+import ruliov.obliviate.db.Database
 import ruliov.obliviate.exceptions.PleaseRetryException
 import ruliov.obliviate.json.toJSON
 
@@ -20,7 +23,7 @@ createController { request, groups ->
     }
 }
 
-fun loginVk(authProvider: AuthProvider) = createControllerRespondsJSON { request, groups ->
+fun loginVkController(authProvider: AuthProvider) = createControllerRespondsJSON { request, groups ->
     val jsonObject = parseJSONObjectOrRespond400(request) ?: return@createControllerRespondsJSON
     val code = getStringFromJSONOrRespond400(request, jsonObject, "code") ?: return@createControllerRespondsJSON
 
@@ -48,4 +51,14 @@ fun loginVk(authProvider: AuthProvider) = createControllerRespondsJSON { request
 
         asyncContext.complete()
     }
+}
+
+fun logoutController(database: Database) = createControllerRespondsJSON { request, groups ->
+    val token = request.inputStream.toByteArray().toString(UTF8)
+
+    if (token.isEmpty()) return@createControllerRespondsJSON respond400(request, "parse")
+
+    database.logout(token).run { if (it != null) LOG.error(it) }
+
+    request.response.writer.write("""{"error":null}""")
 }

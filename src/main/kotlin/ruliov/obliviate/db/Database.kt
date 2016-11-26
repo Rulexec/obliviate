@@ -1,6 +1,7 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
+import ruliov.hexToByteArray
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
 import ruliov.obliviate.LOG
@@ -245,7 +246,6 @@ RETURNING "wordId", id AS "translationId"""")
         return this.wordById[wordId]?.translationId
     })
 
-    // returns session token
     fun vkAuthorization(vkUserId: Long, accessToken: String, vkExpiresIn: Long): IAsync<LoginedUser?, Any> =
     this.pool.getConnection().success { it.use {
         val connection = it.getConnection()
@@ -290,4 +290,15 @@ INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id 
             expiresAt = expiresAt
         ))
     } }
+
+    fun logout(token: String): IFuture<Any?> = this.getConnectionAndCatch {
+        val ps = it.prepareStatement("DELETE FROM sessions WHERE id = ?")
+
+        ps.setBytes(1, token.hexToByteArray())
+
+        val rows = ps.executeUpdate()
+        if (rows == 0) LOG.info("LOGOUT 0")
+
+        createFuture<Any?>(null)
+    }
 }
