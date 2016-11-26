@@ -29,7 +29,7 @@
   "scripts": {
     "bower": "node_modules/bower/bin/bower install",
     "webpack": "node node_modules/webpack/bin/webpack.js",
-    "postinstall": "npm run bower && npm run webpack",
+    "postinstall": "npm run bower && npm run webpack && node frontend/build.js",
     "nodemon": "node node_modules/nodemon/bin/nodemon.js -i frontend/static/bundle -w frontend -e js,jsx,less -x node node_modules/webpack/bin/webpack.js"
   },
   "repository": {
