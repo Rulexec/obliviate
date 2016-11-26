@@ -8,4 +8,6 @@ class EitherLeft<L, R>(val value: L) : IEither<L, R> {
     override fun isRight(): Boolean = false
 
     override fun right(): R = throw UnsupportedOperationException("It is left!")
+
+    override fun toString(): String = this.left().toString()
 }

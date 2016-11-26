@@ -1,6 +1,7 @@
 package ruliov
 
 import java.nio.charset.Charset
+import java.util.*
 import java.util.regex.Pattern
 
 val UTF8 = Charset.forName("UTF-8")
@@ -27,6 +28,18 @@ fun String.hexToByteArray(): ByteArray {
     }
 
     return array
+}
+
+val RANDOM = Random()
+
+fun randomHexString(length: Int): String {
+    val sb = StringBuilder(length * 2)
+
+    for (i in 1..length) {
+        sb.append(Integer.toHexString(RANDOM.nextInt(256)))
+    }
+
+    return sb.toString()
 }
 
 private val pattern = Pattern.compile("^postgres://(.+):(.+)@(.+):(\\d+)/(.+)$")

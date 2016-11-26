@@ -25,11 +25,28 @@ function start() {
 
   let session = new Session();
 
-  let dataProvider = new DataProvider(session);
-
   let user = session.getUser();
 
   let router = new Router();
+
+  let dataProvider = new DataProvider({
+    session,
+    onSessionBroken: () => {
+      forgetAuth();
+
+      router.go('');
+    }
+  });
+
+  function forgetAuth() {
+    user = null;
+    let token = session.getToken();
+    session.forgetAuth();
+
+    header.render();
+
+    return token;
+  }
 
   let header = new Header({
     el: document.getElementById('header'),
@@ -38,13 +55,11 @@ function start() {
     router: router,
 
     onLogout() {
-      user = null;
-      let token = session.getToken();
-      session.forgetAuth();
-
-      header.render();
+      let token = forgetAuth();
 
       dataProvider.logout(token);
+
+      router.go('');
     }
   });
 
@@ -67,11 +82,15 @@ function start() {
 
       ReactDOM.render(React.createElement('noscript'), containerEl)
       gameFlow(flowOptions);
-    }) }, edit() { unmountHandler(() => {
-      header.chooseMenuItem('edit'); header.render();
+    }) }, edit() {
+      if (!user) { router.go(''); return; }
 
-      editFlow(flowOptions)
-    }) }, verbs() { unmountHandler(() => {
+      unmountHandler(() => {
+        header.chooseMenuItem('edit'); header.render();
+
+        editFlow(flowOptions)
+      })
+    }, verbs() { unmountHandler(() => {
       header.chooseMenuItem('verbs'); header.render();
       flowOptions.render(NotImplemented, {});
     }) }, stats() { unmountHandler(() => {
@@ -103,6 +122,8 @@ function start() {
               expiresAt: loginData.user.expiresAt,
               id: loginData.user.id
             });
+
+            router.go('');
           } else {
             console.log('login failed');
             console.error(loginData);
@@ -312,5 +333,8 @@ function editFlow(options) {
     return result;
   }
 
-  dataProvider.getAllWordsWithTranslations().then(words => rerender(words));
+  dataProvider.getAllWordsWithTranslations().then(words => rerender(words), data => {
+    if (data.error === '401') options.router.go('');
+    else throw new Error(data);
+  });
 }
