@@ -3,7 +3,7 @@
 package ruliov.obliviate
 
 import org.eclipse.jetty.server.Request
-import ruliov.async.bindAnyErrorFuture
+import ruliov.async.bind
 import ruliov.async.createFuture
 import ruliov.jetty.HTTPRouter
 import ruliov.jetty.IHTTPMiddleware
@@ -52,7 +52,7 @@ fun main(args: Array<String>) {
 
     LOG.trace("Before database.loadData()")
 
-    database.loadData().bindAnyErrorFuture {
+    database.loadData().bind {
         LOG.info("Data is loaded")
 
         val classLoader = ClassLoader.getSystemClassLoader()

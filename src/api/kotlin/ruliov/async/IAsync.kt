@@ -4,20 +4,43 @@ import ruliov.data.EitherLeft
 import ruliov.data.EitherRight
 import ruliov.data.IEither
 
-interface IAsync<R, E> {
+interface IAsync<out R, out E> {
     fun run(handler:(IEither<E, R>) -> Unit)
 }
 
-fun <R, E> createAsync(run:((IEither<E, R>) -> Unit) -> Unit): IAsync<R, E> {
+inline fun <R, reified E> createAsync(crossinline run:((IEither<E, R>) -> Unit) -> Unit): IAsync<R, E> {
     return object : IAsync<R, E> {
-        override fun run(handler: (IEither<E, R>) -> Unit) = run(handler)
+        override fun run(handler: (IEither<E, R>) -> Unit) {
+            if (E::class == Any::class) {
+                var exceptionInHandler = false
+
+                try {
+                    return run({
+                        try {
+                            handler(it)
+                        } catch (e: Throwable) {
+                            exceptionInHandler = true
+                            throw e
+                        }
+                    })
+                } catch (e: Throwable) {
+                    if (!exceptionInHandler) {
+                        handler(EitherLeft(e as E))
+                    } else {
+                        throw e
+                    }
+                }
+            } else {
+                return run(handler)
+            }
+        }
     }
 }
 
-fun <R, E> asyncResult(result: R): IAsync<R, E> = createAsync { it(EitherRight(result)) }
-fun <R, E> asyncError(error: E): IAsync<R, E> = createAsync { it(EitherLeft(error)) }
+inline fun <R, reified E> asyncResult(result: R): IAsync<R, E> = createAsync { it(EitherRight(result)) }
+inline fun <R, reified E> asyncError(error: E): IAsync<R, E> = createAsync { it(EitherLeft(error)) }
 
-fun <R, E, NR> IAsync<R, E>.success(success: (R) -> IAsync<NR, E>): IAsync<NR, E> {
+inline fun <R, reified E, NR> IAsync<R, E>.success(crossinline success: (R) -> IAsync<NR, E>): IAsync<NR, E> {
     return createAsync {
         val callback = it
 
@@ -31,7 +54,7 @@ fun <R, E, NR> IAsync<R, E>.success(success: (R) -> IAsync<NR, E>): IAsync<NR, E
     }
 }
 
-fun <R, E> IAsync<R, E>.bindToErrorFuture(success: (R) -> IFuture<E?>): IFuture<E?> {
+inline fun <R, reified E> IAsync<R, E>.bindToFuture(crossinline success: (R) -> IFuture<E?>): IFuture<E?> {
     return createFuture {
         val callback = it
 
@@ -42,20 +65,5 @@ fun <R, E> IAsync<R, E>.bindToErrorFuture(success: (R) -> IFuture<E?>): IFuture<
                 callback(it.left())
             }
         }
-    }
-}
-
-fun <R> catchAsync(block: () -> IAsync<R, Any>): IAsync<R, Any> {
-    return createAsync {
-        var async: IAsync<R, Any>
-
-        try {
-            async = block()
-        } catch (e: Throwable) {
-            it(EitherLeft(e))
-            return@createAsync
-        }
-
-        async.run(it)
     }
 }
