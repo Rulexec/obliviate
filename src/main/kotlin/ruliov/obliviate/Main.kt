@@ -13,6 +13,7 @@ import ruliov.jetty.static.StaticFilesServer
 import ruliov.logs.JettyLogger
 import ruliov.logs.Logger
 import ruliov.obliviate.auth.AuthProvider
+import ruliov.obliviate.auth.SessionProvider
 import ruliov.obliviate.controllers.*
 import ruliov.obliviate.db.Database
 import ruliov.toJDBCUrl
@@ -28,7 +29,7 @@ val OUR_URI = if (PRODUCTION)
 
 val JDBC_DATABASE_URL =
     "jdbc:" + toJDBCUrl(System.getenv("DATABASE_URL") ?:
-                        "postgres://ruliov:ruliov@localhost:5432/obliviate")
+                        "postgres://ruliov:ruliov@localhost:5432/obliviate1")
 
 val JDBC_DRIVER = "org.postgresql.Driver"
 fun initJDBCDriver() {
@@ -49,6 +50,8 @@ fun main(args: Array<String>) {
     val database = Database(JDBC_DATABASE_URL)
 
     val authProvider = AuthProvider(database)
+
+    val sessionProvider = SessionProvider(database)
 
     LOG.trace("Before database.loadData()")
 
@@ -74,20 +77,20 @@ fun main(args: Array<String>) {
         router.addRoute("POST", "/log/in/vk", loginVkController(authProvider))
         router.addRoute("POST", "/log/out", logoutController(database))
 
-        router.addRoute("GET", "/words/", getAllWordsController(database))
-        router.addRoute("POST", "/words/", createWordController(database))
+        router.addRoute("GET", "/words/", getAllWordsController(database, sessionProvider))
+        router.addRoute("POST", "/words/", createWordController(database, sessionProvider))
 
         router.addRoute("DELETE",
                 Pattern.compile("^/words/(\\d+)$"),
-                deleteWordController(database))
-        router.addRoute("POST", Pattern.compile("^/words/(\\d+)$"), updateWordController(database))
+                deleteWordController(database, sessionProvider))
+        router.addRoute("POST",
+                Pattern.compile("^/words/(\\d+)$"),
+            updateWordController(database, sessionProvider))
 
-        router.addRoute("GET", "/words/random", getRandomWordController(database))
+        router.addRoute("GET", "/words/random", getRandomWordController(database, sessionProvider))
         router.addRoute("POST",
                 Pattern.compile("^/words/check/(\\d+)$"),
-                checkAndGetNextWordController(database))
-
-        router.addRoute("GET", "/admin/resetdb", resetDbController(database))
+                checkAndGetNextWordController(database, sessionProvider))
 
         val handler = object : IHTTPMiddleware {
             override fun handle(request: Request, next: () -> Unit) {

@@ -10,6 +10,8 @@ class Header extends React.Component {
         if (event.button !== 0) return;
 
         self.props.onMenuItemSelected.call(self.props, id);
+
+        event.preventDefault();
       };
     }
 
@@ -21,13 +23,17 @@ class Header extends React.Component {
                 onClick={onClick(id)}>{text}</a>
     }
 
+    let rightItemsSource;
+    if (this.props.user) rightItemsSource = [['edit', 'Редактировать']]
+    else rightItemsSource = [];
+
     let leftItems = [
           ['home', 'Играть'],
           ['verbs', 'Неправильные глаголы'],
           ['stats', 'Статистика'],
           ['duel', 'Дуэли']
         ].map(createItem),
-        rightItems = [['edit', 'Редактировать']].map(createItem);
+        rightItems = rightItemsSource.map(createItem);
 
     let onLogin = this.props.loginButtonEnabled ? this.props.onLogin.bind(this.props) : null;
 

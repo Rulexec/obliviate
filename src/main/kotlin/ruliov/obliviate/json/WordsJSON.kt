@@ -18,6 +18,8 @@ fun WordWithTranslation.toCompactJSON(): String {
 }
 
 fun List<WordWithTranslation>.toCompactJSON(): String {
+    if (this.isEmpty()) return "[]"
+
     val sb = StringBuilder()
 
     sb.append('[')

@@ -1,6 +1,3 @@
-package ruliov.obliviate.db
-
-val RESET_DB_SQL = """
 TRUNCATE words, translations RESTART IDENTITY;
 
 INSERT INTO words (text) VALUES
@@ -134,4 +131,3 @@ INSERT INTO translations ("wordId", text) VALUES
 (62, 'безжалостный / неумолимый'),
 (63, 'притворство'),
 (64, 'плавление / таяние');
-"""

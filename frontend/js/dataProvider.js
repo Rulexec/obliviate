@@ -1,6 +1,9 @@
 exports.DataProvider = DataProvider;
 
 function DataProvider(options) {
+  let session = options.session,
+      onSessionBroken = options.onSessionBroken;
+
   this.getRandomWord = function() {
     return fetchJSON('words/random');
   };
@@ -46,11 +49,21 @@ function DataProvider(options) {
     return fetchJSON('log/out', { method: 'POST', body: token });
   }
 
-  function fetchJSON() {
-    return fetch.apply(null, arguments).then(response => {
+  function fetchJSON(uri, options) {
+    options || (options = {});
+    options.headers || (options.headers = new Headers());
+
+    let token = session.getToken();
+    if (token) {
+      options.headers.append('X-Auth-Token', token);
+    }
+
+    return fetch(uri, options).then(response => {
       if (response.status === 200) {
         return response.json();
       } else {
+        if (response.status === 401) onSessionBroken();
+
         return Promise.reject(response.json());
       }
     });

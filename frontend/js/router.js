@@ -14,6 +14,8 @@ function Router(options) {
   this.setDefaultRoute = s => defaultRoute = s;
 
   this.go = s => {
+    if (s === defaultRoute) s = '';
+
     document.location.hash = s;
     if (s === '') history.replaceState(null, null, '/');
 

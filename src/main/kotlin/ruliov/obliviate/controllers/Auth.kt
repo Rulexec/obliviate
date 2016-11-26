@@ -3,7 +3,7 @@ package ruliov.obliviate.controllers
 import ruliov.UTF8
 import ruliov.jetty.IHTTPController
 import ruliov.jetty.createController
-import ruliov.jetty.createControllerRespondsJSON
+import ruliov.jetty.respondsJSON
 import ruliov.jetty.static.IStaticFilesServer
 import ruliov.jetty.static.toByteArray
 import ruliov.obliviate.LOG
@@ -23,9 +23,11 @@ createController { request, groups ->
     }
 }
 
-fun loginVkController(authProvider: AuthProvider) = createControllerRespondsJSON { request, groups ->
-    val jsonObject = parseJSONObjectOrRespond400(request) ?: return@createControllerRespondsJSON
-    val code = getStringFromJSONOrRespond400(request, jsonObject, "code") ?: return@createControllerRespondsJSON
+fun loginVkController(authProvider: AuthProvider) = createController { request, groups ->
+    respondsJSON(request)
+
+    val jsonObject = parseJSONObjectOrRespond400(request) ?: return@createController
+    val code = getStringFromJSONOrRespond400(request, jsonObject, "code") ?: return@createController
 
     val asyncContext = request.startAsync()
 
@@ -44,7 +46,7 @@ fun loginVkController(authProvider: AuthProvider) = createControllerRespondsJSON
             if (error is PleaseRetryException) {
                 request.response.writer.write("""{"error":"retry"}""")
             } else {
-                LOG.error("checkVk(code):", it)
+                LOG.error("checkVk(code):", it.left())
                 respond500(request)
             }
         }
@@ -53,10 +55,12 @@ fun loginVkController(authProvider: AuthProvider) = createControllerRespondsJSON
     }
 }
 
-fun logoutController(database: Database) = createControllerRespondsJSON { request, groups ->
+fun logoutController(database: Database) = createController { request, groups ->
+    respondsJSON(request)
+
     val token = request.inputStream.toByteArray().toString(UTF8)
 
-    if (token.isEmpty()) return@createControllerRespondsJSON respond400(request, "parse")
+    if (token.isEmpty()) return@createController respond400(request, "parse")
 
     database.logout(token).run { if (it != null) LOG.error(it) }
 

@@ -1,14 +1,13 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
-import ruliov.hexToByteArray
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
 import ruliov.obliviate.LOG
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.data.words.WordWith4TranslationVariants
 import ruliov.obliviate.data.words.WordWithTranslation
-import ruliov.toHexString
+import ruliov.randomHexString
 import java.sql.Connection
 import java.util.*
 import java.util.regex.Pattern
@@ -29,9 +28,9 @@ class Database(dbUrl: String) {
             override fun run() {
                 LOG.info("OLD-SESSIONS-AUTODELETE started")
 
-                this@Database.getConnectionAndCatch {
+                this@Database.getConnection {
                     it.prepareStatement(
-                        """DELETE FROM sessions WHERE "expiresAt" < timezone('UTC', now())"""
+                        """DELETE FROM sessions WHERE "expiresAt" < CAST(EXTRACT(EPOCH FROM timezone('UTC', now())) * 1000 AS BIGINT)"""
                     ).execute()
 
                     LOG.info("OLD-SESSIONS-AUTODELETE finished")
@@ -44,8 +43,11 @@ class Database(dbUrl: String) {
         }, 5 * 60 * 1000, 60 * 60 * 1000)
     }
 
-    private fun getConnectionAndCatch(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {
+    private fun getConnection(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {
         return this.pool.getConnection().bindToFuture { it.use { handler(it.getConnection()) } }
+    }
+    private fun <R> getConnection(handler: (Connection) -> IAsync<R, Any>): IAsync<R, Any> {
+        return this.pool.getConnection().success { it.use { handler(it.getConnection()) } }
     }
 
     fun loadData(): IFuture<Any?> {
@@ -69,7 +71,7 @@ class Database(dbUrl: String) {
 
             LOG.trace("DB-LOADDATA translations received")
 
-            resultSet = statement.executeQuery("SELECT id, text FROM words ORDER BY text")
+            resultSet = statement.executeQuery("""SELECT id, "ownerId", text FROM words ORDER BY text""")
 
             synchronized(this.wordsWithTranslations, {
                 this.wordsWithTranslations.clear()
@@ -77,12 +79,13 @@ class Database(dbUrl: String) {
 
                 while (resultSet.next()) {
                     val wordId = resultSet.getLong(1)
-                    val wordText = resultSet.getString(2)
+                    val ownerId = resultSet.getLong(2)
+                    val wordText = resultSet.getString(3)
 
                     val translation = translationsMap[wordId] ?: throw Exception("No translation for word $wordId")
 
                     val wordWithTranslation = WordWithTranslation(
-                        wordId, wordText, translation.id, translation.text)
+                        wordId, ownerId, wordText, translation.id, translation.text)
 
                     this.wordsWithTranslations.add(wordWithTranslation)
                     this.wordById[wordId] = wordWithTranslation
@@ -95,52 +98,44 @@ class Database(dbUrl: String) {
         } }
     }
 
-    fun resetDb(): IFuture<Any?> = this.getConnectionAndCatch {
-        val statement = it.createStatement()
-        statement.execute(RESET_DB_SQL)
-
-        this.loadData()
-    }
-
-    fun deleteWord(id: Long): IFuture<Any?> = this.getConnectionAndCatch {
-        val ps = it.prepareCall("DELETE FROM words WHERE id = ?")
-        ps.setLong(1, id)
+    fun deleteWord(ownerId:Long, wordId: Long): IFuture<Any?> = this.getConnection {
+        val ps = it.prepareCall("""DELETE FROM words WHERE wordId = ? AND "ownerId" = ?""")
+        ps.setLong(1, wordId)
+        ps.setLong(2, ownerId)
 
         val rows = ps.executeUpdate()
 
-        if (rows == 1) {
-            // maybe we need to switch to trees, but not now
-            // also, we can use binary search, if we will fetch sorted words from db
-            synchronized(this.wordsWithTranslations, {
-                var i = 0
-                for (word in this.wordsWithTranslations) {
-                    if (word.wordId == id) {
-                        this.wordsWithTranslations.removeAt(i)
-                        this.wordById.remove(id)
+        if (rows == 0) return@getConnection createFuture<Any?>(null)
 
-                        break
-                    }
+        // maybe we need to switch to trees, but not now
+        // also, we can use binary search, if we will fetch sorted words from db
+        synchronized(this.wordsWithTranslations, {
+            var i = 0
+            for (word in this.wordsWithTranslations) {
+                if (word.wordId == wordId) { // no need check for ownerId, it already did DB
+                    this.wordsWithTranslations.removeAt(i)
+                    this.wordById.remove(wordId)
 
-                    i++
+                    break
                 }
-            })
 
-            createFuture<Any?>(null)
-        } else {
-            createFuture("Nothing deleted: $rows")
-        }
+                i++
+            }
+        })
+
+        createFuture<Any?>(null)
     }
 
-    fun updateWord(id: Long, wordText: String, translation: String): IFuture<Any?> =
-            this.getConnectionAndCatch {
+    fun updateWord(ownerId: Long, id: Long, wordText: String, translation: String): IFuture<Any?> =
+    this.getConnection {
         val ps = it.prepareCall(
-            "UPDATE words SET text = ? WHERE id = ?;" +
-            "UPDATE translations SET text = ? WHERE \"wordId\" = ?;")
+"""WITH updated AS (UPDATE words SET text = ? WHERE id = ? AND "ownerId" = ? RETURNING id)" +
+"UPDATE translations SET text = ? WHERE \"wordId\" = (SELECT id FROM updated);""")
 
         ps.setString(1, wordText)
         ps.setLong(2, id)
-        ps.setString(3, translation)
-        ps.setLong(4, id)
+        ps.setLong(3, ownerId)
+        ps.setString(4, translation)
 
         val rows = ps.executeUpdate()
 
@@ -155,17 +150,15 @@ class Database(dbUrl: String) {
                     LOG.error("Word $id not in memory")
                 }
             })
-
-            createFuture<Any?>(null)
-        } else {
-            createFuture("Nothing updated: $rows")
         }
+
+        createFuture<Any?>(null)
     }
 
     private val correctWord = Pattern.compile("^[a-z'\\s]{1,32}$")
     class WordValidationError() : Throwable()
 
-    fun createWord(wordText: String, translation: String): IAsync<Long, Any> {
+    fun createWord(ownerId:Long, wordText: String, translation: String): IAsync<Long, Any> {
         if (!correctWord.matcher(wordText).matches()) {
             return asyncError(WordValidationError())
         }
@@ -179,13 +172,14 @@ class Database(dbUrl: String) {
 
             val ps = connection.prepareStatement(
 """WITH insertedWord AS
-    (INSERT INTO words (text) VALUES (?) RETURNING id AS wid)
+    (INSERT INTO words ("ownerId", text) VALUES (?, ?) RETURNING id AS wid)
 INSERT INTO translations (text, "wordId") VALUES
     (?, (SELECT wid FROM insertedWord))
 RETURNING "wordId", id AS "translationId"""")
 
-            ps.setString(1, wordText)
-            ps.setString(2, translation)
+            ps.setLong(1, ownerId)
+            ps.setString(2, wordText)
+            ps.setString(3, translation)
 
             val resultSet = ps.executeQuery()
             if (!resultSet.next()) throw Exception("SQL: no result")
@@ -193,7 +187,7 @@ RETURNING "wordId", id AS "translationId"""")
             val wordId = resultSet.getLong(1)
             val translationId = resultSet.getString(2)
 
-            val word = WordWithTranslation(wordId, wordText, translationId, translation)
+            val word = WordWithTranslation(wordId, ownerId, wordText, translationId, translation)
 
             synchronized(this.wordsWithTranslations, {
                 this.wordsWithTranslations.add(0, word)
@@ -204,16 +198,22 @@ RETURNING "wordId", id AS "translationId"""")
         } }
     }
 
-    fun getAllWords(): List<WordWithTranslation> = synchronized(this.wordsWithTranslations, {
-        return ArrayList(this.wordsWithTranslations)
+    fun getAllWords(ownerId: Long = 0): List<WordWithTranslation> =
+    synchronized(this.wordsWithTranslations, {
+        return this.wordsWithTranslations.filter { it.ownerId == ownerId }
     })
 
-    fun getRandomWordWith4RandomTranslations(): WordWith4TranslationVariants? =
-    synchronized(this.wordsWithTranslations, {
-        if (this.wordsWithTranslations.size < 4) return null
+    fun getRandomWordWith4RandomTranslations(ownerId: Long = 0): WordWith4TranslationVariants? {
+        var userWords: List<WordWithTranslation>? = null
 
-        val wordId = this.random.nextInt(this.wordsWithTranslations.size)
-        val wordWithTranslation = this.wordsWithTranslations[wordId]
+        synchronized(this.wordsWithTranslations, {
+            userWords = this.wordsWithTranslations.filter { it.ownerId == ownerId }
+        })
+
+        if (userWords!!.size < 4) return null
+
+        val wordId = this.random.nextInt(userWords!!.size)
+        val wordWithTranslation = userWords!![wordId]
 
         val usedVariants = HashSet<Int>()
         usedVariants.add(wordId)
@@ -228,19 +228,19 @@ RETURNING "wordId", id AS "translationId"""")
             var rand: Int
 
             do {
-                rand = this.random.nextInt(this.wordsWithTranslations.size)
+                rand = this.random.nextInt(userWords!!.size)
             } while (rand in usedVariants)
 
             usedVariants.add(rand)
 
-            Pair(this.wordsWithTranslations[rand].translationId, this.wordsWithTranslations[rand].translation)
+            Pair(userWords!![rand].translationId, userWords!![rand].translation)
         })
 
         return WordWith4TranslationVariants(
-                this.wordsWithTranslations[wordId].wordId,
-                this.wordsWithTranslations[wordId].word,
-                variants)
-    })
+            userWords!![wordId].wordId,
+            userWords!![wordId].word,
+            variants)
+    }
 
     fun getWordTranslationId(wordId: Long): String? = synchronized(this.wordsWithTranslations, {
         return this.wordById[wordId]?.translationId
@@ -251,19 +251,20 @@ RETURNING "wordId", id AS "translationId"""")
         val connection = it.getConnection()
 
         val userId: Long
-        val token: ByteArray
         val expiresAt: Long
+
+        val authToken = randomHexString(16)
 
         try {
             connection.transactionIsolation = Connection.TRANSACTION_SERIALIZABLE
             connection.autoCommit = false
 
             val ps = connection.prepareStatement("""
-WITH updatedVk AS (UPDATE "usersVk" SET "accessToken" = ?, "expiresAt" = (timezone('UTC', now()) + ? * interval '1 second') WHERE "vkUserId" = ? RETURNING "userId" AS uid),
+WITH updatedVk AS (UPDATE "usersVk" SET "accessToken" = ?, "expiresAt" = CAST(EXTRACT(EPOCH FROM (timezone('UTC', now()) + ? * interval '1 second')) * 1000 AS BIGINT) WHERE "vkUserId" = ? RETURNING "userId" AS uid),
      userCreated AS (INSERT INTO users SELECT WHERE NOT EXISTS (SELECT uid FROM updatedVk) RETURNING id AS "uidNew"),
-     vkCreated AS (INSERT INTO "usersVk" ("userId", "vkUserId", "accessToken", "expiresAt") SELECT "uidNew", ?, ?, (timezone('UTC', now()) + ? * interval '1 second') FROM userCreated),
+     vkCreated AS (INSERT INTO "usersVk" ("userId", "vkUserId", "accessToken", "expiresAt") SELECT "uidNew", ?, ?, CAST(EXTRACT(EPOCH FROM (timezone('UTC', now()) + ? * interval '1 second')) * 1000 AS BIGINT) FROM userCreated),
      uidTable AS ((SELECT uid FROM updatedVk) UNION (SELECT "uidNew" AS uid FROM userCreated))
-INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id AS "token", CAST(EXTRACT(EPOCH FROM "expiresAt") * 1000 AS BIGINT);""")
+INSERT INTO sessions ("id", "userId") SELECT ?, uid FROM uidTable RETURNING "userId", "expiresAt";""")
 
             ps.setString(1, accessToken)
             ps.setLong(2, vkExpiresIn)
@@ -271,13 +272,13 @@ INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id 
             ps.setLong(4, vkUserId)
             ps.setString(5, accessToken)
             ps.setLong(6, vkExpiresIn)
+            ps.setString(7, authToken)
 
             val resultSet = ps.executeQuery()
             if (!resultSet.next()) throw Exception("SQL: no result")
 
             userId = resultSet.getLong(1)
-            token = resultSet.getBytes(2)
-            expiresAt = resultSet.getLong(3)
+            expiresAt = resultSet.getLong(2)
 
             connection.commit()
         } finally {
@@ -286,19 +287,34 @@ INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id 
 
         asyncResult<LoginedUser?, Any>(LoginedUser(
             id = userId,
-            token = token.toHexString(),
+            token = authToken,
             expiresAt = expiresAt
         ))
     } }
 
-    fun logout(token: String): IFuture<Any?> = this.getConnectionAndCatch {
+    fun logout(token: String): IFuture<Any?> = this.getConnection {
         val ps = it.prepareStatement("DELETE FROM sessions WHERE id = ?")
 
-        ps.setBytes(1, token.hexToByteArray())
+        ps.setString(1, token)
 
         val rows = ps.executeUpdate()
         if (rows == 0) LOG.info("LOGOUT 0")
 
         createFuture<Any?>(null)
+    }
+
+    fun getSession(token: String): IAsync<LoginedUser?, Any> = this.getConnection<LoginedUser?> {
+        val ps = it.prepareStatement(
+"""SELECT "userId", "expiresAt" FROM sessions WHERE id = ? AND "expiresAt" > CAST(EXTRACT(EPOCH FROM timezone('UTC', now())) * 1000 AS BIGINT)"""
+        )
+        ps.setString(1, token)
+
+        val resultSet = ps.executeQuery()
+        if (!resultSet.next()) return@getConnection asyncResult(null)
+
+        val userId = resultSet.getLong(1)
+        val expiresAt = resultSet.getLong(2)
+
+        asyncResult(LoginedUser(userId, token, expiresAt))
     }
 }
