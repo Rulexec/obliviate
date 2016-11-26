@@ -27,7 +27,7 @@ val OUR_URI = if (PRODUCTION)
     "http://localhost:5001"
 
 val JDBC_DATABASE_URL =
-    "jdbc:" + toJDBCUrl(System.getenv("JDBC_DATABASE_URL") ?:
+    "jdbc:" + toJDBCUrl(System.getenv("DATABASE_URL") ?:
                         "postgres://ruliov:ruliov@localhost:5432/obliviate")
 
 val JDBC_DRIVER = "org.postgresql.Driver"
