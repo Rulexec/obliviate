@@ -14,8 +14,6 @@ let React = require('react'),
     Edit = require('./edit.jsx').Edit,
     NotImplemented = require('./notImplemented.jsx').NotImplemented;
 
-let dataProvider = new DataProvider();
-
 if (document.readyState === 'complete') start();
 else window.addEventListener('load', start);
 
@@ -27,6 +25,8 @@ function start() {
 
   let session = new Session();
 
+  let dataProvider = new DataProvider(session);
+
   let user = session.getUser();
 
   let router = new Router();
@@ -35,7 +35,17 @@ function start() {
     el: document.getElementById('header'),
     getUser() { return user; },
     getUnmountHandler() { return unmountHandler; },
-    router: router
+    router: router,
+
+    onLogout() {
+      user = null;
+      let token = session.getToken();
+      session.forgetAuth();
+
+      header.render();
+
+      dataProvider.logout(token);
+    }
   });
 
   let flowOptions = {
@@ -45,6 +55,8 @@ function start() {
         handler(unmount);
       };
     },
+
+    dataProvider: dataProvider,
 
     render: (component, props) => ReactDOM.render(React.createElement(component, props), containerEl)
   };
@@ -82,34 +94,33 @@ function start() {
       if (data.auth === 'vk' && typeof data.code === 'string') {
         let responseReceived = false;
 
+        header.loginButtonEnable(false);
+
         dataProvider.loginVk({code: data.code}).then(loginData => {
           if (loginData.user && typeof loginData.user.token === 'string') {
             user = session.createUser({
               token: loginData.user.token,
+              expiresAt: loginData.user.expiresAt,
               id: loginData.user.id
             });
-
-            header.render();
           } else {
-            header.loginButtonEnable(true);
-
             console.log('login failed');
             console.error(loginData);
           }
-        });
-
-        setTimeout(() => {
-          if (responseReceived) return;
 
           header.loginButtonEnable(true);
-        }, 5000);
+        }, error => {
+          console.error(error);
+          header.loginButtonEnable(true);
+        });
       }
     }
   });
 }
 
 function gameFlow(options) {
-  let render = options.render.bind(options, Game);
+  let render = options.render.bind(options, Game),
+      dataProvider = options.dataProvider;
 
   function onChoose(data, choice) {
     render({
@@ -161,7 +172,8 @@ function gameFlow(options) {
 }
 
 function editFlow(options) {
-  let render = options.render.bind(options, Edit);
+  let render = options.render.bind(options, Edit),
+      dataProvider = options.dataProvider;
 
   render({
     isLoading: true,
@@ -246,10 +258,14 @@ function editFlow(options) {
               selectedFilter = word.word;
 
               rerender(allWords, selectedFilter, newWord);
-            } else if (data.error === 'validation') {
+            } else {
+              console.error(data);
+            }
+          }, data => {
+            if (data.error === 'validation') {
               word.validationError(true)
             } else {
-              alert('TODO: Error: ' + data);
+              console.error(data);
             }
           });
         }

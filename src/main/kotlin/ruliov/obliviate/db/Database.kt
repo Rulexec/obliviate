@@ -1,6 +1,7 @@
 package ruliov.obliviate.db
 
 import ruliov.async.*
+import ruliov.hexToByteArray
 import ruliov.javadb.DBConnectionPool
 import ruliov.javadb.IDBConnectionPool
 import ruliov.obliviate.LOG
@@ -44,11 +45,11 @@ class Database(dbUrl: String) {
     }
 
     private fun getConnectionAndCatch(handler: (Connection) -> IFuture<Any?>): IFuture<Any?> {
-        return this.pool.getConnection().bindToErrorFuture { catchFuture { it.use { handler(it.getConnection()) } } }
+        return this.pool.getConnection().bindToFuture { it.use { handler(it.getConnection()) } }
     }
 
     fun loadData(): IFuture<Any?> {
-        return this.pool.getConnection().bindToErrorFuture { catchFuture { it.use {
+        return this.pool.getConnection().bindToFuture { it.use {
             val connection = it.getConnection()
 
             data class Translation(val id: String, val text: String)
@@ -91,7 +92,7 @@ class Database(dbUrl: String) {
             LOG.trace("DB-LOADDATA words received")
 
             createFuture<Any?>(null)
-        } } }
+        } }
     }
 
     fun resetDb(): IFuture<Any?> = this.getConnectionAndCatch {
@@ -173,7 +174,7 @@ class Database(dbUrl: String) {
             return asyncError(WordValidationError())
         }
 
-        return this.pool.getConnection().success { catchAsync<Long> { it.use {
+        return this.pool.getConnection().success { it.use {
             val connection = it.getConnection()
 
             val ps = connection.prepareStatement(
@@ -199,8 +200,8 @@ RETURNING "wordId", id AS "translationId"""")
                 this.wordById[wordId] = word
             })
 
-            asyncResult(wordId)
-        } } }
+            asyncResult<Long, Any>(wordId)
+        } }
     }
 
     fun getAllWords(): List<WordWithTranslation> = synchronized(this.wordsWithTranslations, {
@@ -245,9 +246,8 @@ RETURNING "wordId", id AS "translationId"""")
         return this.wordById[wordId]?.translationId
     })
 
-    // returns session token
     fun vkAuthorization(vkUserId: Long, accessToken: String, vkExpiresIn: Long): IAsync<LoginedUser?, Any> =
-    this.pool.getConnection().success { catchAsync { it.use {
+    this.pool.getConnection().success { it.use {
         val connection = it.getConnection()
 
         val userId: Long
@@ -289,5 +289,16 @@ INSERT INTO sessions ("userId") SELECT uid FROM uidTable RETURNING "userId", id 
             token = token.toHexString(),
             expiresAt = expiresAt
         ))
-    } } }
+    } }
+
+    fun logout(token: String): IFuture<Any?> = this.getConnectionAndCatch {
+        val ps = it.prepareStatement("DELETE FROM sessions WHERE id = ?")
+
+        ps.setBytes(1, token.hexToByteArray())
+
+        val rows = ps.executeUpdate()
+        if (rows == 0) LOG.info("LOGOUT 0")
+
+        createFuture<Any?>(null)
+    }
 }

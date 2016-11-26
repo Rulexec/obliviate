@@ -1,11 +1,19 @@
 let React = require('react'),
     ReactDOM = require('react-dom'),
-    HeaderReact = require('./header.jsx').Header;
+    HeaderReact = require('./header.jsx').Header,
+
+    debounce = require('./util').debounce;
 
 exports.Header = Header;
 
 function Header(options) {
   let self = this;
+
+  let el = options.el,
+      getUser = options.getUser,
+      getUnmountHandler = options.getUnmountHandler,
+      onLogout = options.onLogout,
+      router = options.router;
 
   let headerButtonsState = {
     menuItemIsEnabled: {},
@@ -26,6 +34,20 @@ function Header(options) {
   let headerProps = {
     loginButtonEnabled: true
   };
+
+  let onLogin = debounce(() => {
+    let uri = document.location.protocol + '//' + document.location.host + '/auth/vk';
+
+    let authUri = 'https://oauth.vk.com/authorize?client_id=5740564' +
+                  '&state=vk' +
+                  '&display=popup&scope=0&response_type=code&v=5.60&redirect_uri=' + uri;
+
+    let left = (window.screen.width - 600) / 2,
+        top = (window.screen.height - 400) / 2;
+    window.open(authUri, '_blank', `width=600,height=400,left=${left},top=${top}`);
+
+    self.render();
+  }, 3000);
 
   this.render = function() {
     let defaultProps = {
@@ -48,21 +70,8 @@ function Header(options) {
         });
       },
 
-      onLogin: () => {
-        let uri = document.location.protocol + '//' + document.location.host + '/auth/vk';
-
-        let authUri = 'https://oauth.vk.com/authorize?client_id=5740564' +
-                      '&state=vk' +
-                      '&display=popup&scope=0&response_type=code&v=5.60&redirect_uri=' + uri;
-
-        let left = (window.screen.width - 600) / 2,
-            top = (window.screen.height - 400) / 2;
-        window.open(authUri, '_blank', `width=600,height=400,left=${left},top=${top}`);
-
-        headerProps.loginButtonEnabled = false;
-
-        self.render();
-      }
+      onLogin: onLogin,
+      onLogout: onLogout
     };
 
     let mixedProps = Object.assign({}, defaultProps, headerButtonsState, headerProps);

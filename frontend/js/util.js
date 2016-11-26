@@ -1,4 +1,5 @@
 exports.memoBind = memoBind;
+exports.debounce = debounce;
 
 let MEMOBINDSYMBOL = Symbol('memoBind');
 function memoBind(mem, id, func, ...bindArgs) {
@@ -20,4 +21,16 @@ function memoBind(mem, id, func, ...bindArgs) {
   }
 
   return cached;
+}
+
+function debounce(fn, timeout) {
+  let lastCall = null,
+      lastResult;
+
+  return function() {
+    if (lastCall !== null && Date.now() - lastCall < timeout) return (console.log('debounced'), lastResult);
+
+    lastCall = Date.now();
+    return (lastResult = fn.apply(this, arguments));
+  };
 }
