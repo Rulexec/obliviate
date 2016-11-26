@@ -19,7 +19,7 @@ class Header extends React.Component {
         ].map(createItem),
         rightItems = [['edit', 'Редактировать']].map(createItem);
 
-    let onLogin = this.props.loginButtonEnabled ? this.props.onLogin.bind(this.props) : null;
+    let onLogin = this.props.onLogin.bind(this.props);
 
     return (
       <div className='header-component ui secondary pointing menu'>
@@ -29,8 +29,7 @@ class Header extends React.Component {
           {this.props.user ?
             <a className='item disabled'>Выхода нет</a> :
 
-            <a className={'item login' + (this.props.loginButtonEnabled ? '' : ' disabled')}
-               onClick={onLogin}><span>Войти</span></a>}
+            <a className='item login' onClick={onLogin}><span>Войти</span></a>}
         </div>
       </div>
     );

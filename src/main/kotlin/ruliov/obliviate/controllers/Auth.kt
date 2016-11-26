@@ -6,6 +6,7 @@ import ruliov.jetty.createControllerRespondsJSON
 import ruliov.jetty.static.IStaticFilesServer
 import ruliov.obliviate.LOG
 import ruliov.obliviate.auth.AuthProvider
+import ruliov.obliviate.exceptions.PleaseRetryException
 import ruliov.obliviate.json.toJSON
 
 fun authVkController(staticFilesServer:IStaticFilesServer, authProvider: AuthProvider): IHTTPController =
@@ -35,8 +36,14 @@ fun loginVk(authProvider: AuthProvider) = createControllerRespondsJSON { request
                 request.response.writer.write("""{"error":"bad-auth"}""")
             }
         } else {
-            LOG.error("checkVk(code):", it)
-            respond500(request)
+            val error = it.left()
+
+            if (error is PleaseRetryException) {
+                request.response.writer.write("""{"error":"retry"}""")
+            } else {
+                LOG.error("checkVk(code):", it)
+                respond500(request)
+            }
         }
 
         asyncContext.complete()

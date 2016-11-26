@@ -91,8 +91,6 @@ function start() {
 
             header.render();
           } else {
-            header.loginButtonEnable(true);
-
             console.log('login failed');
             console.error(loginData);
           }
@@ -100,8 +98,6 @@ function start() {
 
         setTimeout(() => {
           if (responseReceived) return;
-
-          header.loginButtonEnable(true);
         }, 5000);
       }
     }

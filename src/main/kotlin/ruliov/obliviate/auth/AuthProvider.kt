@@ -17,10 +17,12 @@ import ruliov.obliviate.OUR_URI
 import ruliov.obliviate.VK_SECRET
 import ruliov.obliviate.data.users.LoginedUser
 import ruliov.obliviate.db.Database
+import ruliov.obliviate.exceptions.PleaseRetryException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 class AuthProvider(private val database: Database) {
     private sealed class CheckStatus {
@@ -160,9 +162,15 @@ class AuthProvider(private val database: Database) {
 
                         database.vkAuthorization(userId, accessToken, expiresIn).run(::notifyAwaiters)
                     } else {
-                        LOG.warn("VK-CODES $code request error:", it.failure)
+                        if (it.failure is TimeoutException) {
+                            LOG.warn("VK-CODES $code no response from VK")
 
-                        notifyAwaiters(EitherLeft(it.failure))
+                            notifyAwaiters(EitherLeft(PleaseRetryException()))
+                        } else {
+                            LOG.warn("VK-CODES $code request error:", it.failure)
+
+                            notifyAwaiters(EitherLeft(it.failure))
+                        }
                     }
                 } catch (e: Throwable) {
                     LOG.log(
