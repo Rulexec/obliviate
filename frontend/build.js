@@ -1,7 +1,6 @@
 let fs = require('fs');
 
-let indexHtml = fs.readFileSync(__dirname + '/index.html'),
-    statCountersPos = indexHtml.indexOf(STAT_COUNTERS);
+let indexHtml = fs.readFileSync(__dirname + '/index.html');
 
 var statCountersHtml, forceHttpsHtml;
 
