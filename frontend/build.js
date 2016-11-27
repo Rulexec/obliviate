@@ -13,8 +13,8 @@ if (!process.env.LOCAL) {
 }
 
 let replaces = {
-  STAT_COUNTERS: statCountersHtml,
-  FORCE_HTTPS: forceHttpsHtml
+  STAT_COUNTERS: statCountersHtml//,
+  //FORCE_HTTPS: forceHttpsHtml
 };
 
 let chunks = [];

@@ -24,7 +24,7 @@ val LOCAL: Boolean = System.getenv("LOCAL") != null
 val PRODUCTION: Boolean = !LOCAL
 
 val OUR_URI = if (PRODUCTION)
-    "https://obliviate-332.herokuapp.com" else
+    "http://oblitus.hypershape.club" else
     "http://localhost:5001"
 
 val JDBC_DATABASE_URL =
