@@ -64,7 +64,7 @@ function DataProvider(options) {
       } else {
         if (response.status === 401) onSessionBroken();
 
-        return Promise.reject(response.json());
+        return response.json().then(x => Promise.reject(x));
       }
     });
   }
