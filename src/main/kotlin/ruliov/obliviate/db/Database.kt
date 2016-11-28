@@ -129,8 +129,8 @@ class Database(dbUrl: String) {
     fun updateWord(ownerId: Long, id: Long, wordText: String, translation: String): IFuture<Any?> =
     this.getConnection {
         val ps = it.prepareCall(
-"""WITH updated AS (UPDATE words SET text = ? WHERE id = ? AND "ownerId" = ? RETURNING id)" +
-"UPDATE translations SET text = ? WHERE \"wordId\" = (SELECT id FROM updated);""")
+"""WITH updated AS (UPDATE words SET text = ? WHERE id = ? AND "ownerId" = ? RETURNING id)
+UPDATE translations SET text = ? WHERE "wordId" = (SELECT id FROM updated);""")
 
         ps.setString(1, wordText)
         ps.setLong(2, id)

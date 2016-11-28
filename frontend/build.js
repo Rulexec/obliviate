@@ -1,7 +1,6 @@
 let fs = require('fs');
 
-let indexHtml = fs.readFileSync(__dirname + '/index.html'),
-    statCountersPos = indexHtml.indexOf(STAT_COUNTERS);
+let indexHtml = fs.readFileSync(__dirname + '/index.html');
 
 var statCountersHtml, forceHttpsHtml;
 
@@ -14,8 +13,8 @@ if (!process.env.LOCAL) {
 }
 
 let replaces = {
-  STAT_COUNTERS: statCountersHtml,
-  FORCE_HTTPS: forceHttpsHtml
+  STAT_COUNTERS: statCountersHtml//,
+  //FORCE_HTTPS: forceHttpsHtml
 };
 
 let chunks = [];
