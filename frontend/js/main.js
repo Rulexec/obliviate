@@ -256,7 +256,7 @@ function editFlow(options) {
       },
       onUpdate: word => {
         if (word.id !== 0) {
-          dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated());
+          dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated(), onWordUpdateError);
         } else { // create
           dataProvider.createWord(word.word, word.translation).then(data => {
             word.onUpdated();
@@ -282,13 +282,15 @@ function editFlow(options) {
             } else {
               console.error(data);
             }
-          }, data => {
-            if (data.error === 'validation') {
-              word.validationError(true)
-            } else {
-              console.error(data);
-            }
-          });
+          }, onWordUpdateError);
+        }
+
+        function onWordUpdateError(data) {
+          if (data.error === 'validation') {
+            word.validationError(true)
+          } else {
+            console.error(data);
+          }
         }
       },
       onIndex(indexItem) {

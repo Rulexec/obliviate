@@ -128,6 +128,8 @@ class Database(dbUrl: String) {
 
     fun updateWord(ownerId: Long, id: Long, wordText: String, translation: String): IFuture<Any?> =
     this.getConnection {
+        if (wordIsCorrect(wordText)) return@getConnection createFuture(WordValidationError())
+
         val ps = it.prepareCall(
 """WITH updated AS (UPDATE words SET text = ? WHERE id = ? AND "ownerId" = ? RETURNING id)
 UPDATE translations SET text = ? WHERE "wordId" = (SELECT id FROM updated);""")
@@ -158,10 +160,12 @@ UPDATE translations SET text = ? WHERE "wordId" = (SELECT id FROM updated);""")
     private val correctWord = Pattern.compile("^[a-z'\\s]{1,32}$")
     class WordValidationError() : Throwable()
 
+    fun wordIsCorrect(text: String): Boolean {
+        return correctWord.matcher(text).matches()
+    }
+
     fun createWord(ownerId:Long, wordText: String, translation: String): IAsync<Long, Any> {
-        if (!correctWord.matcher(wordText).matches()) {
-            return asyncError(WordValidationError())
-        }
+        if (wordIsCorrect(wordText)) return asyncError(WordValidationError())
 
         if (translation.isEmpty() || translation.length > 255) {
             return asyncError(WordValidationError())
