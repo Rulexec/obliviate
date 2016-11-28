@@ -23,9 +23,10 @@ import java.util.regex.Pattern
 val LOCAL: Boolean = System.getenv("LOCAL") != null
 val PRODUCTION: Boolean = !LOCAL
 
-val OUR_URI = if (PRODUCTION)
-    "http://oblitus.hypershape.club" else
-    "http://localhost:5001"
+val HOST = System.getenv("HOST") ?: "localhost:5001"
+val PROTOCOL = "http"
+
+val OUR_URI = "$PROTOCOL://$HOST"
 
 val JDBC_DATABASE_URL =
     "jdbc:" + toJDBCUrl(System.getenv("DATABASE_URL") ?:
@@ -94,6 +95,15 @@ fun main(args: Array<String>) {
 
         val handler = object : IHTTPMiddleware {
             override fun handle(request: Request, next: () -> Unit) {
+                val host = request.getHeader("Host")
+                if (host != null && host != HOST) {
+                    LOG.info("HOST $host")
+                    request.response.status = 307
+                    request.response.setHeader("Location", OUR_URI + request.requestURI)
+                    request.response.closeOutput()
+                    return
+                }
+
                 LOG.trace("HTTP ${request.method} ${request.requestURI}")
 
                 val isRouted = router.route(request)
