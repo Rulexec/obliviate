@@ -33,16 +33,16 @@ class EditWord extends React.Component {
 
     this.props.onUpdate({
       id: self.props.id,
-      word: self.wordEl.value,
-      translation: self.translationEl.value,
+      word: self.refs.word.value,
+      translation: self.refs.translation.value,
 
       onUpdated() {
         self.setState({isDisabled: false});
       },
       
       clearFields() {
-        self.wordEl.value = '';
-        self.translationEl.value = '';
+        self.refs.word.value = '';
+        self.refs.translation.value = '';
       },
 
       validationError(flag) {
@@ -61,10 +61,19 @@ class EditWord extends React.Component {
     }
   }
 
-  onKeyPress(event) {
+  onKeyPress(elementName, event) {
     if (event.key === 'Enter') {
       this.onMaybeUpdate();
       event.preventDefault();
+      return;
+    }
+  }
+
+  onWordChange() {
+    if (this.refs.word.value.length > 0) {
+      this.props.getDictContainer().showDict(true);
+    } else {
+      this.props.getDictContainer().showDict(false);
     }
   }
 
@@ -79,12 +88,13 @@ class EditWord extends React.Component {
         <div className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.word} placeholder='слово' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
-                 readOnly={ isDisabled } ref={x => this.wordEl = x} />
+                 onChange={this.onWordChange.bind(this)}
+                 readOnly={ isDisabled } ref='word' />
         </div>
         <div className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.translation} placeholder='перевод' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
-                 readOnly={ isDisabled } ref={x => this.translationEl = x} />
+                 readOnly={ isDisabled } ref='translation' />
         </div>
         <button className={'ui button' + (isDisabled ? ' disabled' : '')}
                 onClick={this.onMaybeUpdate.bind(this)}>{$.saveButtonText || 'Сохранить'}</button>
@@ -96,7 +106,40 @@ class EditWord extends React.Component {
   }
 }
 
+class EditWordsOrShowDict extends React.Component {
+  constructor(props, context) {
+    super(props, context);
+
+    this.state = {
+      isDict: false
+    };
+  }
+
+  showDict(flag) {
+    this.setState({isDict: flag});
+  }
+
+  render() {
+    return <div className='words-container'>
+      { this.state.isDict ?
+        <span>Dict</span> :
+        this.props.words.map(({id, word, translation}) =>
+          <EditWord key={id} id={id} word={word} translation={translation}
+                    isNewWord={id === this.props.newWordId}
+                    onUpdate={this.props.onUpdate} onDelete={this.props.onDelete}/>) }
+    </div>
+  }
+}
+
 class Edit extends React.Component {
+  constructor(props, context) {
+    super(props, context);
+
+    let self = this;
+
+    this.getDictContainer = function() { return self.refs.dictContainer; };
+  }
+
   render() {
     let onUpdate = this.props.onUpdate ? memoBind(this, 'onUpdate', this.props.onUpdate, this.props) : null,
         onDelete = this.props.onDelete ? memoBind(this, 'onDelete', this.props.onDelete, this.props) : null,
@@ -107,13 +150,10 @@ class Edit extends React.Component {
       <div className='edit-component'>
         <div className='left-panel'></div>
         <div className='container'>
-          <EditWord onUpdate={onUpdate} id={0} withoutDelete saveButtonText='Добавить' />
+          <EditWord onUpdate={onUpdate} id={0} getDictContainer={this.getDictContainer} withoutDelete saveButtonText='Добавить' />
           { this.props.isLoading ?
               <p style={{marginTop: '1em'}}>Loading...</p> :
-              this.props.words.map(({id, word, translation}) =>
-                <EditWord key={id} id={id} word={word} translation={translation}
-                          isNewWord={id === newWordId}
-                          onUpdate={onUpdate} onDelete={onDelete}/>)
+              <EditWordsOrShowDict ref='dictContainer' onUpdate={onUpdate} onDelete={onDelete} newWordId={newWordId} words={this.props.words} />
           }
         </div>
         <div className='index-panel'>
