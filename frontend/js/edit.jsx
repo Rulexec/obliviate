@@ -56,7 +56,9 @@ class EditWord extends React.Component {
   onMaybeUpdate() {
     if (!this.state.isDisabled) {
       if (typeof this.props.onUpdate === 'function') {
-        this.onUpdate();
+        if (this.handleSaveLock()) { // validation
+          this.onUpdate();
+        }
       }
     }
   }
@@ -71,11 +73,88 @@ class EditWord extends React.Component {
 
   onWordChange() {
     let text = this.refs.word.value;
-    this.props.onWordChange(text);
+
+    this.validate('word');
+
+    this.props.onWordChange && this.props.onWordChange(text);
+  }
+  onTranslateChange() {
+    this.validate('translation');
+  }
+
+  validate(name) {
+    let item = this.needToValidateMap[name],
+        value = item.getValue(),
+        validator = item.validator,
+        el = item.el;
+
+    let isValid;
+
+    if (value.length > 0) {
+      isValid = validator(value);
+
+      if (isValid) {
+        el.classList.remove('error');
+      } else {
+        el.classList.add('error');
+      }
+    } else {
+      isValid = false;
+      el.classList.remove('error');
+    }
+
+    this.needToValidateMap[name].valid = isValid;
+
+    isValid ? this.handleSaveLock() : this.lockSaveButton();
+  }
+
+  handleSaveLock() {
+    let formIsValid = this.needToValidate.every(x => x.valid);
+    
+    if (formIsValid) {
+      this.refs.saveButton.classList.remove('disabled');
+    } else {
+      this.lockSaveButton();
+    }
+
+    return formIsValid;
+  }
+  lockSaveButton() {
+    this.refs.saveButton.classList.add('disabled');
+  }
+  
+  componentDidMount() {
+    this.setUpValidation(this.props.validations);
+  }
+  componentWillReceiveProps(props) {
+    this.setUpValidation(props.validations);
+  }
+
+  setUpValidation(validators) {
+    if (!validators) return;
+
+    this.needToValidate = [
+      {name: 'word',
+       getValue: () => this.refs.word.value,
+       validator: validators.word,
+       el: this.refs.wordContainer,
+       valid: validators.word(this.refs.word.value)},
+      {name: 'translation',
+       getValue: () => this.refs.translation.value,
+       validator: validators.translation,
+       el: this.refs.translationContainer,
+       valid: validators.translation(this.refs.translation.value)}
+    ];
+    let map = this.needToValidateMap = {};
+
+    this.needToValidate.forEach(x => map[x.name] = x);
+
+    this.handleSaveLock();
   }
 
   changeTranslationText(text) {
     this.refs.translation.value = text;
+    this.validate('translation');
   }
 
   render() {
@@ -86,18 +165,19 @@ class EditWord extends React.Component {
     return (
       <div className={'row ui input' + (this.state.isDeleted ? ' hide' : '') +
                                        (this.props.isNewWord ? ' focus' : '')}>
-        <div className={'input-text ui input' + (isValid ? '' : ' error')}>
+        <div ref='wordContainer' className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.word} placeholder='слово' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
-                 onChange={this.props.onWordChange ? this.onWordChange.bind(this) : null}
+                 onChange={this.onWordChange.bind(this)}
                  readOnly={ isDisabled } ref='word' />
         </div>
-        <div className={'input-text ui input' + (isValid ? '' : ' error')}>
+        <div ref='translationContainer' className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.translation} placeholder='перевод' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
+                 onChange={this.onTranslateChange.bind(this)}
                  readOnly={ isDisabled } ref='translation' />
         </div>
-        <button className={'ui button' + (isDisabled ? ' disabled' : '')}
+        <button ref='saveButton' className={'ui button' + (isDisabled ? ' disabled' : '')}
                 onClick={this.onMaybeUpdate.bind(this)}>{$.saveButtonText || 'Сохранить'}</button>
         {this.props.withoutDelete ? null :
           <button className={'ui basic button' + (isDisabled ? ' disabled' : '')}
@@ -145,11 +225,11 @@ function Translation(props) {
     <h2 className='ui dividing header'>{data.word}</h2>
     {data.figuresOfSpeech.length > 0 ?
       <div className='ui list'>{ data.figuresOfSpeech.map(figure =>
-        <div className='item'>
+        <div key={figure.figure} className='item'>
           <span className='figure-of-speech'>{figure.figure}.</span>
           <div>
-            <div className='ui ordered list'>{ figure.translations.map(translation =>
-              <div className='item translation-variant'>
+            <div className='ui ordered list'>{ figure.translations.map((translation, i) =>
+              <div key={i} className='item translation-variant'>
                 <div className='synonyms'>
                   {createSynonyms(translation.variants)}
                 </div>
@@ -197,6 +277,7 @@ class EditWordsOrShowDict extends React.Component {
                                 <Translation translation={this.state.translation} onSelected={this.onTranslationSelected} />) :
         this.props.words.map(({id, word, translation}) =>
           <EditWord key={id} id={id} word={word} translation={translation}
+                    validations={this.props.validations}
                     isNewWord={id === this.props.newWordId}
                     onUpdate={this.props.onUpdate} onDelete={this.props.onDelete}/>) }
     </div>
@@ -215,9 +296,13 @@ class Edit extends React.Component {
     this.onTranslationSelected = function(text) {
       self.refs.creation.changeTranslationText(text);
     };
+
+    this.state = {isShowingIndex: true};
   }
 
   changeDictState(state) {
+    this.setState({isShowingIndex: !state.isDict});
+
     this.refs.dictContainer.changeDictState(state);
   }
 
@@ -232,10 +317,13 @@ class Edit extends React.Component {
         <div className='left-panel'></div>
         <div className='container'>
           <EditWord ref='creation'
-              onUpdate={onUpdate} id={0} onWordChange={this.onWordChange} withoutDelete saveButtonText='Добавить' />
+              onUpdate={onUpdate} id={0} onWordChange={this.onWordChange}
+              validations={this.props.validations}
+              withoutDelete saveButtonText='Добавить' />
           { this.props.isLoading ?
               <p style={{marginTop: '1em'}}>Loading...</p> :
               <EditWordsOrShowDict ref='dictContainer'
+                  validations={this.props.validations}
                   onUpdate={onUpdate} onDelete={onDelete}
                   onTranslationSelected={this.onTranslationSelected}
                   newWordId={newWordId} words={this.props.words} />
@@ -243,10 +331,10 @@ class Edit extends React.Component {
         </div>
         <div className='index-panel'>
           <div className='index'>
-            {this.props.index.map(x => {
+            {this.state.isShowingIndex ? this.props.index.map(x => {
               return <div key={x.value} className={x.active ? 'active' : null}
                       onClick={!x.active ? this.props.onIndex.bind(this.props, x) : null}><span>{x.value}</span></div>
-            })}
+            }) : null}
           </div>
         </div>
       </div>

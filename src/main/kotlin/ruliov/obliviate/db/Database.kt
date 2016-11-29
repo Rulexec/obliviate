@@ -99,7 +99,8 @@ class Database(dbUrl: String) {
     }
 
     fun deleteWord(ownerId:Long, wordId: Long): IFuture<Any?> = this.getConnection {
-        val ps = it.prepareCall("""DELETE FROM words WHERE wordId = ? AND "ownerId" = ?""")
+        val ps = it.prepareCall("""DELETE FROM words WHERE id = ? AND "ownerId" = ?""")
+
         ps.setLong(1, wordId)
         ps.setLong(2, ownerId)
 
