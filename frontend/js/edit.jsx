@@ -143,7 +143,7 @@ class EditWord extends React.Component {
        getValue: () => this.refs.translation.value,
        validator: validators.translation,
        el: this.refs.translationContainer,
-       valid: validators.word(this.refs.word.value)}
+       valid: validators.translation(this.refs.translation.value)}
     ];
     let map = this.needToValidateMap = {};
 
@@ -296,9 +296,13 @@ class Edit extends React.Component {
     this.onTranslationSelected = function(text) {
       self.refs.creation.changeTranslationText(text);
     };
+
+    this.state = {isShowingIndex: true};
   }
 
   changeDictState(state) {
+    this.setState({isShowingIndex: !state.isDict});
+
     this.refs.dictContainer.changeDictState(state);
   }
 
@@ -327,10 +331,10 @@ class Edit extends React.Component {
         </div>
         <div className='index-panel'>
           <div className='index'>
-            {this.props.index.map(x => {
+            {this.state.isShowingIndex ? this.props.index.map(x => {
               return <div key={x.value} className={x.active ? 'active' : null}
                       onClick={!x.active ? this.props.onIndex.bind(this.props, x) : null}><span>{x.value}</span></div>
-            })}
+            }) : null}
           </div>
         </div>
       </div>
