@@ -8,6 +8,19 @@
   <script src='bundle/vendor.bundle.js'></script>
   <script src='bundle/bundle.js'></script>
 
+  <script>
+window.addEventListener('load', function() {
+  let eggs = [
+    'В футере должно быть неприменно что-то ещё',
+    'Зачем в футере постоянно разные надписи?',
+    'LinguaLeo всё равно лучше',
+    'Меня бесят львята',
+    'Тэнк! Мне нужно знание английского языка!'
+  ];
+  document.getElementById('footer-egg').innerHTML = eggs[Math.random() * eggs.length | 0];
+});
+  </script>
+
   <style>
 #loading {
   width: 100%;
@@ -30,12 +43,13 @@
 <body>
 %STAT_COUNTERS%
 
-<div id="header"></div>
+<div id='header'></div>
 
 <div id='loading'><img id='loading-spinner' width='50' height='50' src='images/refresh.png'></div>
 
-<div id="container"></div>
-<div id="footer"></div>
+<div id='container'></div>
+
+<div id='footer'><a href='https://docs.google.com/forms/d/e/1FAIpQLSegp4u5LRNY4Fv7hNLrZLld-7dMd_rCy_DCs32WnZGeidAXuA/viewform'>Сообщить об ошибке</a> | <span id='footer-egg'>Яйцо?</span> | Литуус — кривая из <a href='https://vk.com/alexander_ruliov'>Hypershape</a></div>
 
 </body>
 </html>
