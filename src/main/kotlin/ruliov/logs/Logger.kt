@@ -98,6 +98,9 @@ class Logger {
 
         var isFirst = true
         for (message in messages) {
+            if (isFirst) isFirst = false
+            else sb.append(' ')
+
             when (message) {
             is Throwable -> {
                 val sw = StringWriter()
@@ -107,9 +110,6 @@ class Logger {
             null -> sb.append("null")
             else -> sb.append(message.toString())
             }
-
-            if (isFirst) isFirst = false
-            else sb.append(' ')
         }
 
         val lines = sb.toString().split('\n')

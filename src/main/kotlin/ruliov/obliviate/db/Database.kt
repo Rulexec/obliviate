@@ -324,8 +324,12 @@ INSERT INTO sessions ("id", "userId") SELECT ?, uid FROM uidTable RETURNING "use
     }
 
     fun saveEmail(email: String): IFuture<Any?> = this.getConnection {
-        val ps = it.prepareStatement("""INSERT INTO emails (email) VALUES (?)""")
+        val ps = it.prepareStatement(
+"""INSERT INTO emails (email) SELECT ? WHERE NOT EXISTS (
+    SELECT email FROM emails WHERE email = ?
+);""")
         ps.setString(1, email)
+        ps.setString(2, email)
 
         ps.executeUpdate()
 
