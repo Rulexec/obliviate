@@ -27,7 +27,16 @@ function Edit(options) {
       self.render();
     }, data => {
       if (data.error === '401') options.router.go('');
-      else throw new Error(data); // TODO
+      else {
+        render({
+          isError: true,
+          refresh: () => {
+            self.start();
+          }
+        });
+
+        console.error(data);
+      }
     });
   };
 
@@ -90,6 +99,9 @@ function Edit(options) {
           } else {
             word.onDeleted();
           }
+        }, error => {
+          word.notDeleted();
+          console.error(error);
         });
       },
       onUpdate: word => {
@@ -128,9 +140,10 @@ function Edit(options) {
 
         function onWordUpdateError(data) {
           if (data.error === 'validation') {
-            word.onUpdated();
+            word.notUpdated();
             word.validationError(true)
           } else {
+            word.notUpdated();
             console.error(data); // TODO
           }
         }
@@ -171,6 +184,10 @@ function Edit(options) {
               isLoading: false,
               translation: data
             });
+          }, error => {
+            console.error('Yandex.Dictionary error:');
+            console.error(error);
+            hideDict();
           });
         }, 1500);
       }

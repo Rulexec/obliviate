@@ -1,4 +1,6 @@
-let React = require('react');
+let React = require('react'),
+
+    DataLoadErrorRefresh = require('./errors.jsx').dataLoadErrorRefresh;
 
 class Choice extends React.Component {
   choose() {
@@ -28,7 +30,11 @@ class Game extends React.Component {
     this._showingResultTimeout = null;
 
     this.choose = [];
-    for (let i = 0; i < 4; i++) ((j) => this.choose.push(() => self.props.onChoose(j)))();
+    for (let i = 0; i < 4; i++) {
+      (function(j) {
+        self.choose.push(() => self.props.onChoose(j));
+      })(i);
+    }
   }
 
   componentDidUpdate() {
@@ -52,7 +58,7 @@ class Game extends React.Component {
   render() {
     let choices = [];
 
-    if (!this.props.word.error)
+    if (this.props.word && !this.props.word.error)
     for (let i = 0; i < 4; i++) {
       let choice =
         <Choice {...this.props.word.choices[i]} key={i}
@@ -66,7 +72,11 @@ class Game extends React.Component {
 
     return (
       <div className='game'>
-        {!this.props.word.error ? [
+        {this.props.isLoading ? <span>Загрузка...</span> :
+        
+         this.props.isError ? <DataLoadErrorRefresh refresh={this.props.refresh} /> :
+        
+         !this.props.word.error ? [
            <div key='word' className='word-box ui message'><span>{this.props.word.word}</span></div>,
            <div key='choices' className='choices'>
              <div className='row'>{choices[0]}{choices[1]}</div>

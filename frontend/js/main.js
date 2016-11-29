@@ -136,7 +136,7 @@ function start() {
           header.loginButtonEnable(true);
         }, error => {
           console.error(error);
-          header.loginButtonEnable(true);
+          header.loginButtonEnable(true, {notLogined: true});
         });
       }
     }

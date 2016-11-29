@@ -51,10 +51,12 @@ function DataProvider(options) {
     return fetchJSON('log/out', { method: 'POST', body: token });
   }
 
+  let TIMEOUT = 5000;
+
   this.getTranslations = function(word) {
     let uri = 'https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=dict.1.1.20161128T194919Z.e29f78b0008f5e8d.78bb20ee265923dc722cc8e4728fc3a81e41aa82&lang=en-ru&ui=ru&flags=10&text=' + word;
 
-    return fetch(uri).then(response => {
+    return promiseWithTimeout(fetch(uri).then(response => {
       if (response.status === 200) {
         return response.json().then(data => {
           if (data.code && data.code !== 200) {
@@ -66,7 +68,7 @@ function DataProvider(options) {
       } else {
         return Promise.reject(response);
       }
-    });
+    }), TIMEOUT);
 
     function transform(yandex) {
       let defs = yandex.def;
@@ -107,7 +109,7 @@ function DataProvider(options) {
       options.headers.append('X-Auth-Token', token);
     }
 
-    return fetch(uri, options).then(response => {
+    return promiseWithTimeout(fetch(uri, options).then(response => {
       if (response.status === 200) {
         return response.json();
       } else {
@@ -115,6 +117,37 @@ function DataProvider(options) {
 
         return response.json().then(x => Promise.reject(x));
       }
-    });
+    }), TIMEOUT);
   }
+
+  function promiseWithTimeout(promise, timeout) {
+    return new Promise((resolve, reject) => {
+      let isHandled = false;
+
+      let timeoutId = setTimeout(function() {
+        if (isHandled) return;
+
+        isHandled = true;
+        reject('timeout');
+      }, timeout);
+
+      promise.then(function() {
+        if (isHandled) return;
+
+        isHandled = true;
+
+        resolve.apply(this, arguments);
+      }, function() {
+        if (isHandled) {
+          console.error('promiseWithTimeout rejected');
+          console.error(arguments);
+          return;
+        }
+
+        isHandled = true;
+
+        reject.apply(this, arguments);
+      });
+    });
+  };
 }

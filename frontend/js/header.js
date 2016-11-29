@@ -32,7 +32,8 @@ function Header(options) {
   this.chooseMenuItem('home');
 
   let headerProps = {
-    loginButtonEnabled: true
+    loginButtonEnabled: true,
+    notLogined: false
   };
 
   let onLogin = debounce(() => {
@@ -79,8 +80,15 @@ function Header(options) {
     ReactDOM.render(React.createElement(HeaderReact, mixedProps), options.el);
   }
 
-  this.loginButtonEnable = (flag) => {
+  this.loginButtonEnable = (flag, options) => {
     headerProps.loginButtonEnabled = flag;
+
+    if (options && options.notLogined !== undefined) {
+      headerProps.notLogined = options.notLogined;
+    } else {
+      headerProps.notLogined = false;
+    }
+
     self.render();
   };
 }
