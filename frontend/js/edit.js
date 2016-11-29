@@ -86,6 +86,8 @@ function Edit(options) {
           dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated(), onWordUpdateError);
         } else { // create
           dataProvider.createWord(word.word, word.translation).then(data => {
+            hideDict();
+
             word.onUpdated();
             word.validationError(false)
 
@@ -123,14 +125,15 @@ function Edit(options) {
         }
       },
       onIndex(indexItem) {
+        hideDict();
+
         if (typeof selectedFilter === 'number') index[selectedFilter].active = false;
         selectedFilter = indexItem.id;
         self.render();
       },
       onNewWordChange(text) {
         if (text.length === 0) {
-          element.changeDictState({isDict: false});
-          dictIsShown = false;
+          hideDict();
           return;
         }
 
@@ -161,6 +164,12 @@ function Edit(options) {
         }, 750);
       }
     });
+
+    function hideDict() {
+      dictIsShown = false;
+      lastWordChangeTimeout && clearTimeout(lastWordChangeTimeout);
+      element.changeDictState({isDict: false});
+    }
 
     newWord = null;
   };
