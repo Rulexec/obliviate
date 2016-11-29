@@ -322,4 +322,13 @@ INSERT INTO sessions ("id", "userId") SELECT ?, uid FROM uidTable RETURNING "use
 
         asyncResult(LoginedUser(userId, token, expiresAt))
     }
+
+    fun saveEmail(email: String): IFuture<Any?> = this.getConnection {
+        val ps = it.prepareStatement("""INSERT INTO emails (email) VALUES (?)""")
+        ps.setString(1, email)
+
+        ps.executeUpdate()
+
+        createFuture<Any?>(null)
+    }
 }

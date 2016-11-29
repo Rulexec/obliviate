@@ -33,23 +33,27 @@ function DataProvider(options) {
 
   this.deleteWord = function(id) {
     return fetchJSON('words/' + id, { method: 'DELETE' });
-  }
+  };
 
   this.updateWord = function(id, word, translation) {
     return fetchJSON('words/' + id, { method: 'POST', body: JSON.stringify([word, translation]) });
-  }
+  };
 
   this.createWord = function(word, translation) {
     return fetchJSON('words/', { method: 'POST', body: JSON.stringify([word, translation]) });
-  }
+  };
 
   this.loginVk = function(data) {
     return fetchJSON('log/in/vk', { method: 'POST', body: JSON.stringify(data) });
-  }
+  };
 
   this.logout = function(token) {
     return fetchJSON('log/out', { method: 'POST', body: token });
-  }
+  };
+
+  this.sendVerbsEmail = function(email) {
+    return fetchJSON('email/', {method: 'POST', body: email});
+  };
 
   let TIMEOUT = 5000;
 

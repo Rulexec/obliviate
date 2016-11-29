@@ -11,7 +11,8 @@ sealed class LogLevel(val level: Int) {
     object ERROR : LogLevel(2)
     object WARNING : LogLevel(3)
     object INFO : LogLevel(4)
-    object TRACE : LogLevel(5)
+    object MESSAGE : LogLevel(5)
+    object TRACE : LogLevel(6)
 }
 
 /*
@@ -32,7 +33,7 @@ class Logger {
     private var waitingForFinish = AtomicInteger(0)
 
     init {
-        this.write(LogLevel.INFO, (System.nanoTime() - start) / 1000, "Logging started")
+        this.write(LogLevel.INFO, (System.nanoTime() - start) / 1000, "Logging started at ${System.currentTimeMillis()}")
 
         this.semaphore.acquire()
 
@@ -87,6 +88,7 @@ class Logger {
     fun error(vararg messages: Any?) = this.log(LogLevel.ERROR, *messages)
     fun warn(vararg messages: Any?) = this.log(LogLevel.WARNING, *messages)
     fun info(vararg messages: Any?) = this.log(LogLevel.INFO, *messages)
+    fun msg(vararg messages: Any?) = this.log(LogLevel.MESSAGE, *messages)
     fun trace(vararg messages: Any?) = this.log(LogLevel.TRACE, *messages)
 
     private fun write(level: LogLevel, passed: Long, vararg messages: Any?) {
