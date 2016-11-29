@@ -61,7 +61,7 @@ class EditWord extends React.Component {
     }
   }
 
-  onKeyPress(elementName, event) {
+  onKeyPress(event) {
     if (event.key === 'Enter') {
       this.onMaybeUpdate();
       event.preventDefault();
@@ -70,11 +70,12 @@ class EditWord extends React.Component {
   }
 
   onWordChange() {
-    if (this.refs.word.value.length > 0) {
-      this.props.getDictContainer().showDict(true);
-    } else {
-      this.props.getDictContainer().showDict(false);
-    }
+    let text = this.refs.word.value;
+    this.props.onWordChange(text);
+  }
+
+  changeTranslationText(text) {
+    this.refs.translation.value = text;
   }
 
   render() {
@@ -88,7 +89,7 @@ class EditWord extends React.Component {
         <div className={'input-text ui input' + (isValid ? '' : ' error')}>
           <input type='text' defaultValue={$.word} placeholder='слово' maxLength='24'
                  onKeyPress={this.onKeyPress.bind(this)}
-                 onChange={this.onWordChange.bind(this)}
+                 onChange={this.props.onWordChange ? this.onWordChange.bind(this) : null}
                  readOnly={ isDisabled } ref='word' />
         </div>
         <div className={'input-text ui input' + (isValid ? '' : ' error')}>
@@ -106,23 +107,94 @@ class EditWord extends React.Component {
   }
 }
 
+function Translation(props) {
+  let data = props.translation;
+
+  function joinWithComma(list, fn) {
+    let result = [];
+
+    list.forEach((x, i) => {
+      result.push(fn(x, i));
+
+      if (i !== list.length - 1) result.push(', ');
+    });
+
+    return result;
+  }
+
+  function createSynonyms(synonyms) {
+    return joinWithComma(synonyms, (x, i) =>
+      <span key={i} onClick={props.onSelected.bind(props, x)} className='synonym'>{x}</span>);
+  }
+
+  function createExamples(examples) {
+    let result = [];
+
+    examples.forEach((x, i) => {
+      result.push(<span key={i} className='example'><span className='example-text'>{x.text}</span> → {
+        joinWithComma(x.variants, (x, i) => <span key={i} className='example-variant'>{x}</span>)
+      }</span>);
+
+      if (i !== examples.length - 1) result.push(', ');
+    });
+
+    return result;
+  }
+
+  return <div className='dict-translation'>
+    <h2 className='ui dividing header'>{data.word}</h2>
+    {data.figuresOfSpeech.length > 0 ?
+      <div className='ui list'>{ data.figuresOfSpeech.map(figure =>
+        <div className='item'>
+          <span className='figure-of-speech'>{figure.figure}.</span>
+          <div>
+            <div className='ui ordered list'>{ figure.translations.map(translation =>
+              <div className='item translation-variant'>
+                <div className='synonyms'>
+                  {createSynonyms(translation.variants)}
+                </div>
+                {translation.examples.length > 0 ? <div className='examples'>
+                  {createExamples(translation.examples)}
+                </div> : null}
+              </div>
+            )}</div>
+          </div>
+        </div>
+      )}</div>
+      
+      :
+
+      <p>Перевода нет</p>}
+
+    <div className='yandex-dictionary-text'>Реализовано с помощью сервиса <a href='https://tech.yandex.ru/dictionary/' style={{color: 'red'}}>«Яндекс.Словарь»</a></div>
+  </div>;
+}
+
 class EditWordsOrShowDict extends React.Component {
   constructor(props, context) {
     super(props, context);
 
+    let self = this;
+
     this.state = {
-      isDict: false
+      isDict: false,
+      isLoading: false
+    };
+
+    this.onTranslationSelected = function(text) {
+      self.props.onTranslationSelected(text);
     };
   }
 
-  showDict(flag) {
-    this.setState({isDict: flag});
+  changeDictState(state) {
+    this.setState(state);
   }
 
   render() {
     return <div className='words-container'>
       { this.state.isDict ?
-        <span>Dict</span> :
+        (this.state.isLoading ? <span><i className='fa fa-spinner'></i> Loading...</span> :
+                                <Translation translation={this.state.translation} onSelected={this.onTranslationSelected} />) :
         this.props.words.map(({id, word, translation}) =>
           <EditWord key={id} id={id} word={word} translation={translation}
                     isNewWord={id === this.props.newWordId}
@@ -137,7 +209,16 @@ class Edit extends React.Component {
 
     let self = this;
 
-    this.getDictContainer = function() { return self.refs.dictContainer; };
+    this.onWordChange = function(text) {
+      self.props.onNewWordChange(text);
+    };
+    this.onTranslationSelected = function(text) {
+      self.refs.creation.changeTranslationText(text);
+    };
+  }
+
+  changeDictState(state) {
+    this.refs.dictContainer.changeDictState(state);
   }
 
   render() {
@@ -150,10 +231,14 @@ class Edit extends React.Component {
       <div className='edit-component'>
         <div className='left-panel'></div>
         <div className='container'>
-          <EditWord onUpdate={onUpdate} id={0} getDictContainer={this.getDictContainer} withoutDelete saveButtonText='Добавить' />
+          <EditWord ref='creation'
+              onUpdate={onUpdate} id={0} onWordChange={this.onWordChange} withoutDelete saveButtonText='Добавить' />
           { this.props.isLoading ?
               <p style={{marginTop: '1em'}}>Loading...</p> :
-              <EditWordsOrShowDict ref='dictContainer' onUpdate={onUpdate} onDelete={onDelete} newWordId={newWordId} words={this.props.words} />
+              <EditWordsOrShowDict ref='dictContainer'
+                  onUpdate={onUpdate} onDelete={onDelete}
+                  onTranslationSelected={this.onTranslationSelected}
+                  newWordId={newWordId} words={this.props.words} />
           }
         </div>
         <div className='index-panel'>

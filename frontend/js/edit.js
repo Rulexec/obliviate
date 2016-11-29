@@ -61,7 +61,10 @@ function Edit(options) {
 
     let wordsCount = words.length;
 
-    render({
+    let lastWordChangeTimeout = null,
+        dictIsShown = false;
+
+    let element = render({
       words: words,
       newWord: newWord,
       index: index,
@@ -123,6 +126,39 @@ function Edit(options) {
         if (typeof selectedFilter === 'number') index[selectedFilter].active = false;
         selectedFilter = indexItem.id;
         self.render();
+      },
+      onNewWordChange(text) {
+        if (text.length === 0) {
+          element.changeDictState({isDict: false});
+          dictIsShown = false;
+          return;
+        }
+
+        if (!dictIsShown) {
+          element.changeDictState({
+            isDict: true,
+            isLoading: true
+          });
+          dictIsShown = true;
+        }
+
+        if (lastWordChangeTimeout !== null) clearTimeout(lastWordChangeTimeout);
+
+        lastWordChangeTimeout = setTimeout(function() {
+          lastWordChangeTimeout = null;
+
+          if (!dictIsShown) return;
+
+          dataProvider.getTranslations(text).then(data => {
+            if (!dictIsShown) return;
+
+            element.changeDictState({
+              isDict: true,
+              isLoading: false,
+              translation: data
+            });
+          });
+        }, 750);
       }
     });
 
