@@ -10,6 +10,10 @@
   > .container {
     width: 50vw;
     float: left;
+
+    > .words-container {
+      margin-top: 1.5em;
+    }
   }
   > .index-panel {
     float: left;
@@ -56,6 +60,44 @@
 
     &:not(:first-child) {
       margin-top: 1.5em;
+    }
+  }
+
+  .dict-translation {
+    margin-bottom: 3em;
+
+    .figure-of-speech {
+      color: gray;
+    }
+
+    .yandex-dictionary-text {
+      width: 100%;
+      text-align: right;
+
+      > a {
+        text-decoration: underline;
+      }
+    }
+
+    .translation-variant:not(:first-child) {
+      margin-top: 0.5em;
+    }
+
+    .synonyms {
+      .synonym {
+        text-decoration: none;
+        border-bottom: 1px dashed;
+      }
+      .synonym:hover {
+        cursor: pointer;
+        color: gray;
+      }
+    }
+
+    .examples {
+      margin-top: 0.5em;
+      color: gray;
+      font-style: italic;
     }
   }
 }

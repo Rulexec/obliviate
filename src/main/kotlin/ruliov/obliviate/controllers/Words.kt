@@ -93,8 +93,12 @@ createController(authRequired(sessionProvider) { request, groups, session ->
         if (it == null) {
             request.response.writer.write("{\"error\":null}")
         } else {
-            LOG.error("Word update:", it)
-            respond500(request)
+            if (it is Database.WordValidationError) {
+                respond400(request, "validation")
+            } else {
+                LOG.error("Word update:", it)
+                respond500(request)
+            }
         }
 
         request.asyncContext.complete()
