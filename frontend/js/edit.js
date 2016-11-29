@@ -11,6 +11,9 @@ function Edit(options) {
   let allWords, index, selectedFilter,
       newWord = null;
 
+  let wordIsValid = x => /^[a-z'\\s]{1,32}$/.test(x),
+      translationIsValid = x => /^.{1,255}$/.test(x);
+
   this.start = function() {
     render({
       isLoading: true,
@@ -68,6 +71,10 @@ function Edit(options) {
       words: words,
       newWord: newWord,
       index: index,
+      validations: {
+        word: wordIsValid,
+        translation: translationIsValid
+      },
       onDelete: word => {
         allWords.some((x, i) => x.id === word.id && (allWords.splice(i, 1), index = buildIndex(allWords), true));
 
@@ -132,7 +139,7 @@ function Edit(options) {
         self.render();
       },
       onNewWordChange(text) {
-        if (text.length === 0) {
+        if (text.length === 0 || !wordIsValid(text)) {
           hideDict();
           return;
         }
