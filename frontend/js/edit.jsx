@@ -1,6 +1,6 @@
 let React = require('react'),
 
-    memoBind = require('./util').memoBind;
+    DataLoadErrorRefresh = require('./errors.jsx').dataLoadErrorRefresh;
 
 class EditWord extends React.Component {
   constructor(props, context) {
@@ -9,7 +9,9 @@ class EditWord extends React.Component {
     this.state = {
       isDisabled: false,
       isDeleted: false,
-      isValid: true
+      isValid: true,
+      isNotUpdated: false,
+      isNotDeleted: false
     };
   }
 
@@ -21,7 +23,10 @@ class EditWord extends React.Component {
     this.props.onDelete({
       id: this.props.id,
       onDeleted: () => {
-        self.setState({isDeleted: true});
+        self.setState({isDeleted: true, isNotDeleted: false});
+      },
+      notDeleted: () => {
+        self.setState({isDisabled: false, isNotDeleted: true});
       }
     });
   }
@@ -37,7 +42,10 @@ class EditWord extends React.Component {
       translation: self.refs.translation.value,
 
       onUpdated() {
-        self.setState({isDisabled: false});
+        self.setState({isDisabled: false, isNotUpdated: false});
+      },
+      notUpdated() {
+        self.setState({isDisabled: false, isNotUpdated: true})
       },
       
       clearFields() {
@@ -177,10 +185,10 @@ class EditWord extends React.Component {
                  onChange={this.onTranslateChange.bind(this)}
                  readOnly={ isDisabled } ref='translation' />
         </div>
-        <button ref='saveButton' className={'ui button' + (isDisabled ? ' disabled' : '')}
+        <button ref='saveButton' className={'ui button' + (isDisabled ? ' disabled' : '') + (this.state.isNotUpdated ? ' red' : '')}
                 onClick={this.onMaybeUpdate.bind(this)}>{$.saveButtonText || 'Сохранить'}</button>
         {this.props.withoutDelete ? null :
-          <button className={'ui basic button' + (isDisabled ? ' disabled' : '')}
+          <button className={'ui basic button' + (isDisabled ? ' disabled' : '') + (this.state.isNotDeleted ? ' red' : '')}
                   onClick={isDisabled || !$.onDelete ? null : this.onDelete.bind(this)}><i className='fa fa-trash'></i></button>}
       </div>
     );
@@ -297,6 +305,9 @@ class Edit extends React.Component {
       self.refs.creation.changeTranslationText(text);
     };
 
+    this.onUpdate = function() { self.props.onUpdate.apply(self.props, arguments); };
+    this.onDelete = function() { self.props.onDelete.apply(self.props, arguments); };
+
     this.state = {isShowingIndex: true};
   }
 
@@ -307,31 +318,32 @@ class Edit extends React.Component {
   }
 
   render() {
-    let onUpdate = this.props.onUpdate ? memoBind(this, 'onUpdate', this.props.onUpdate, this.props) : null,
-        onDelete = this.props.onDelete ? memoBind(this, 'onDelete', this.props.onDelete, this.props) : null,
-
-        newWordId = this.props.newWord ? this.props.newWord.id : null;
+    let newWordId = this.props.newWord ? this.props.newWord.id : null,
+        onUpdate = this.onUpdate,
+        onDelete = this.onDelete;
 
     return (
       <div className='edit-component'>
         <div className='left-panel'></div>
         <div className='container'>
-          <EditWord ref='creation'
+          {this.props.isError ? <DataLoadErrorRefresh refresh={this.props.refresh} /> :
+           
+           this.props.isLoading ?
+           <p key='loading' style={{marginTop: '1em'}}>Loading...</p> :
+
+           [<EditWord key='creation' ref='creation'
               onUpdate={onUpdate} id={0} onWordChange={this.onWordChange}
               validations={this.props.validations}
-              withoutDelete saveButtonText='Добавить' />
-          { this.props.isLoading ?
-              <p style={{marginTop: '1em'}}>Loading...</p> :
-              <EditWordsOrShowDict ref='dictContainer'
-                  validations={this.props.validations}
-                  onUpdate={onUpdate} onDelete={onDelete}
-                  onTranslationSelected={this.onTranslationSelected}
-                  newWordId={newWordId} words={this.props.words} />
-          }
+              withoutDelete saveButtonText='Добавить' />,
+            <EditWordsOrShowDict key='dictContainer' ref='dictContainer'
+              validations={this.props.validations}
+              onUpdate={onUpdate} onDelete={onDelete}
+              onTranslationSelected={this.onTranslationSelected}
+              newWordId={newWordId} words={this.props.words} />]}
         </div>
         <div className='index-panel'>
           <div className='index'>
-            {this.state.isShowingIndex ? this.props.index.map(x => {
+            {this.state.isShowingIndex && this.props.index ? this.props.index.map(x => {
               return <div key={x.value} className={x.active ? 'active' : null}
                       onClick={!x.active ? this.props.onIndex.bind(this.props, x) : null}><span>{x.value}</span></div>
             }) : null}

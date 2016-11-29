@@ -48,7 +48,8 @@ class Header extends React.Component {
               <span>Выйти</span>
             </a> :
 
-            <a className={'item login' + (this.props.loginButtonEnabled ? '' : ' disabled')}
+            <a className={'item login' + (this.props.loginButtonEnabled ? '' : ' disabled') +
+                                         (this.props.notLogined ? ' login-error' : '')}
                onClick={onLogin}><span>Войти</span></a>}
         </div>
       </div>

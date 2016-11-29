@@ -13,7 +13,7 @@ function gameFlow(options) {
       isDisabled: true,
       choice: choice,
       word: data
-    })
+    });
 
     dataProvider.checkWordAndGetNextRandomWord(data.wordId, data.choices[choice].id).then(newData => {
       let correctChoice;
@@ -40,17 +40,40 @@ function gameFlow(options) {
           onChoose: onChoose.bind(null, newData.word)
         })
       });
+    }, error => {
+      console.error(error);
+      // TODO: show popup
+      render({
+        isShowingResult: false,
+        isDisabled: false,
+        choice: null,
+        correctChoice: null,
+        word: data,
+        onChoose: onChoose.bind(null, data)
+      });
     });
   }
 
-  dataProvider.getRandomWord().then(data => {
-    render({
-      isShowingResult: false,
-      isDisabled: false,
-      choice: null,
-      correctChoice: null,
-      word: data,
-      onChoose: onChoose.bind(null, data)
+  function loadFirstWord() {
+    render({isLoading: true});
+
+    dataProvider.getRandomWord().then(data => {
+      render({
+        isShowingResult: false,
+        isDisabled: false,
+        choice: null,
+        correctChoice: null,
+        word: data,
+        onChoose: onChoose.bind(null, data)
+      });
+    }, error => {
+      console.error(error);
+      render({
+        isError: true,
+        refresh: () => loadFirstWord()
+      });
     });
-  });
+  }
+
+  loadFirstWord();
 }

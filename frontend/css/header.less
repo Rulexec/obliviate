@@ -5,7 +5,7 @@
 
   .login {
     > span {
-      border-bottom: 1px dashed black;
+      border-bottom: 1px dashed;
     }
 
     &.disabled {
@@ -14,6 +14,10 @@
       > span {
         border: none;
       }
+    }
+
+    &.login-error {
+      color: red;
     }
   }
 }

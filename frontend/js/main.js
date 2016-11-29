@@ -13,6 +13,8 @@ let React = require('react'),
     Edit = require('./edit.js').Edit,
     gameFlow = require('./game.js').gameFlow,
 
+    VerbsReact = require('./verbs.jsx').Verbs,
+
     NotImplemented = require('./notImplemented.jsx').NotImplemented;
 
 if (document.readyState === 'complete') start();
@@ -96,7 +98,28 @@ function start() {
       })
     }, verbs() { unmountHandler(() => {
       header.chooseMenuItem('verbs'); header.render();
-      flowOptions.render(NotImplemented, {});
+      function render(emailIsValid) {
+        flowOptions.render(VerbsReact, {
+          emailIsDisabled: false,
+          emailIsValid: emailIsValid,
+          onEmail: email => {
+            if (/^[^@]+@[^@]+$/.test(email)) {
+              flowOptions.render(VerbsReact, {emailIsDisabled: true});
+
+              dataProvider.sendVerbsEmail(email).then(() => {
+                flowOptions.render(VerbsReact, {emailIsDisabled: true, emailed: true});
+              }, error => {
+                console.error(error);
+                render(true);
+              });
+            } else {
+              render(false);
+            }
+          }
+        });
+      }
+
+      render(true);
     }) }, stats() { unmountHandler(() => {
       header.chooseMenuItem('stats'); header.render();
       flowOptions.render(NotImplemented, {});
@@ -136,7 +159,7 @@ function start() {
           header.loginButtonEnable(true);
         }, error => {
           console.error(error);
-          header.loginButtonEnable(true);
+          header.loginButtonEnable(true, {notLogined: true});
         });
       }
     }

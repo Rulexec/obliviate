@@ -93,6 +93,8 @@ fun main(args: Array<String>) {
                 Pattern.compile("^/words/check/(\\d+)$"),
                 checkAndGetNextWordController(database, sessionProvider))
 
+        router.addRoute("POST", "/email/", saveEmailVerbsController(database))
+
         val handler = object : IHTTPMiddleware {
             override fun handle(request: Request, next: () -> Unit) {
                 val host = request.getHeader("Host")
