@@ -74,7 +74,9 @@ function start() {
 
     dataProvider: dataProvider,
 
-    render: (component, props) => ReactDOM.render(React.createElement(component, props), containerEl)
+    render: (component, props) => {
+      return ReactDOM.render(React.createElement(component, props), containerEl);
+    }
   };
 
   router.addRoutes({

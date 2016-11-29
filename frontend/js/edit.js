@@ -61,7 +61,10 @@ function Edit(options) {
 
     let wordsCount = words.length;
 
-    render({
+    let lastWordChangeTimeout = null,
+        dictIsShown = false;
+
+    let element = render({
       words: words,
       newWord: newWord,
       index: index,
@@ -83,6 +86,8 @@ function Edit(options) {
           dataProvider.updateWord(word.id, word.word, word.translation).then(() => word.onUpdated(), onWordUpdateError);
         } else { // create
           dataProvider.createWord(word.word, word.translation).then(data => {
+            hideDict();
+
             word.onUpdated();
             word.validationError(false)
 
@@ -120,11 +125,51 @@ function Edit(options) {
         }
       },
       onIndex(indexItem) {
+        hideDict();
+
         if (typeof selectedFilter === 'number') index[selectedFilter].active = false;
         selectedFilter = indexItem.id;
         self.render();
+      },
+      onNewWordChange(text) {
+        if (text.length === 0) {
+          hideDict();
+          return;
+        }
+
+        if (!dictIsShown) {
+          element.changeDictState({
+            isDict: true,
+            isLoading: true
+          });
+          dictIsShown = true;
+        }
+
+        if (lastWordChangeTimeout !== null) clearTimeout(lastWordChangeTimeout);
+
+        lastWordChangeTimeout = setTimeout(function() {
+          lastWordChangeTimeout = null;
+
+          if (!dictIsShown) return;
+
+          dataProvider.getTranslations(text).then(data => {
+            if (!dictIsShown) return;
+
+            element.changeDictState({
+              isDict: true,
+              isLoading: false,
+              translation: data
+            });
+          });
+        }, 750);
       }
     });
+
+    function hideDict() {
+      dictIsShown = false;
+      lastWordChangeTimeout && clearTimeout(lastWordChangeTimeout);
+      element.changeDictState({isDict: false});
+    }
 
     newWord = null;
   };
