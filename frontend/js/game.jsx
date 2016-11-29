@@ -1,6 +1,4 @@
-let React = require('react'),
-
-    memoBind = require('./util').memoBind;
+let React = require('react');
 
 class Choice extends React.Component {
   choose() {
@@ -25,7 +23,12 @@ class Game extends React.Component {
   constructor(props, context) {
     super(props, context);
 
+    let self = this;
+
     this._showingResultTimeout = null;
+
+    this.choose = [];
+    for (let i = 0; i < 4; i++) ((j) => this.choose.push(() => self.props.onChoose(j)))();
   }
 
   componentDidUpdate() {
@@ -46,10 +49,6 @@ class Game extends React.Component {
     this._showingResultTimeout = null;
   }
 
-  choose(choice) {
-    this.props.onChoose(choice);
-  }
-
   render() {
     let choices = [];
 
@@ -61,7 +60,7 @@ class Game extends React.Component {
                 isChoice={i === this.props.choice}
                 isCorrect={i === this.props.correctChoice}
                 isIncorrect={this.props.isShowingResult && this.props.choice === i && this.props.choice !== this.props.correctChoice}
-                onChoose={memoBind(this, 'choose' + i, this.choose, this, i)} />;
+                onChoose={this.choose[i]} />;
       choices.push(choice);
     }
 

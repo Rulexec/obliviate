@@ -31,6 +31,12 @@ function Edit(options) {
     });
   };
 
+  let lastWordChangeTimeout = null;
+  let dictState = {
+    shown: false,
+    i: 0
+  };
+
   this.render = function() {
     let words = allWords;
 
@@ -64,9 +70,6 @@ function Edit(options) {
 
     let wordsCount = words.length;
 
-    let lastWordChangeTimeout = null,
-        dictIsShown = false;
-
     let element = render({
       words: words,
       newWord: newWord,
@@ -76,12 +79,13 @@ function Edit(options) {
         translation: translationIsValid
       },
       onDelete: word => {
-        allWords.some((x, i) => x.id === word.id && (allWords.splice(i, 1), index = buildIndex(allWords), true));
+        allWords.some((x, i) => x.id === word.id && (allWords.splice(i, 1), (index = buildIndex(allWords)), true));
 
         dataProvider.deleteWord(word.id).then(() => {
           wordsCount--;
 
           if (wordsCount === 0) {
+            selectedFilter = 0;
             self.render();
           } else {
             word.onDeleted();
@@ -144,12 +148,12 @@ function Edit(options) {
           return;
         }
 
-        if (!dictIsShown) {
+        if (!dictState.shown) {
           element.changeDictState({
             isDict: true,
             isLoading: true
           });
-          dictIsShown = true;
+          dictState.shown = true;
         }
 
         if (lastWordChangeTimeout !== null) clearTimeout(lastWordChangeTimeout);
@@ -157,10 +161,10 @@ function Edit(options) {
         lastWordChangeTimeout = setTimeout(function() {
           lastWordChangeTimeout = null;
 
-          if (!dictIsShown) return;
+          if (!dictState.shown) return;
 
           dataProvider.getTranslations(text).then(data => {
-            if (!dictIsShown) return;
+            if (!dictState.shown) return;
 
             element.changeDictState({
               isDict: true,
@@ -168,12 +172,12 @@ function Edit(options) {
               translation: data
             });
           });
-        }, 750);
+        }, 1500);
       }
     });
 
     function hideDict() {
-      dictIsShown = false;
+      dictState.shown = false;
       lastWordChangeTimeout && clearTimeout(lastWordChangeTimeout);
       element.changeDictState({isDict: false});
     }

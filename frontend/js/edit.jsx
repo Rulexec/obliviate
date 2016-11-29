@@ -297,6 +297,9 @@ class Edit extends React.Component {
       self.refs.creation.changeTranslationText(text);
     };
 
+    this.onUpdate = function() { self.props.onUpdate.apply(self.props, arguments); };
+    this.onDelete = function() { self.props.onDelete.apply(self.props, arguments); };
+
     this.state = {isShowingIndex: true};
   }
 
@@ -307,10 +310,9 @@ class Edit extends React.Component {
   }
 
   render() {
-    let onUpdate = this.props.onUpdate ? memoBind(this, 'onUpdate', this.props.onUpdate, this.props) : null,
-        onDelete = this.props.onDelete ? memoBind(this, 'onDelete', this.props.onDelete, this.props) : null,
-
-        newWordId = this.props.newWord ? this.props.newWord.id : null;
+    let newWordId = this.props.newWord ? this.props.newWord.id : null,
+        onUpdate = this.onUpdate,
+        onDelete = this.onDelete;
 
     return (
       <div className='edit-component'>
