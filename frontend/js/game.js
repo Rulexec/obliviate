@@ -4,7 +4,8 @@ exports.gameFlow = gameFlow;
 
 function gameFlow(options) {
   let render = options.render.bind(options, Game),
-      wordsProvider = options.wordsProvider;
+      wordsProvider = options.wordsProvider,
+      isVerbs = options.isVerbs;
 
   function onChoose(data, choice) {
     render({
@@ -12,7 +13,8 @@ function gameFlow(options) {
       isWaitingForResult: true,
       isDisabled: true,
       choice: choice,
-      word: data
+      word: data,
+      isVerbs: isVerbs
     });
 
     wordsProvider.checkWordAndGetNextRandomWord(data.wordId, data.choices[choice].id).then(newData => {
@@ -30,6 +32,7 @@ function gameFlow(options) {
         correctChoice: correctChoice,
         word: data,
         onChoose: null,
+        isVerbs: isVerbs,
         onNextWord: render.bind(null, {
           isShowingResult: false,
           isWaitingForResult: false,
@@ -37,6 +40,7 @@ function gameFlow(options) {
           choice: null,
           correctChoice: null,
           word: newData.word,
+          isVerbs: isVerbs,
           onChoose: onChoose.bind(null, newData.word)
         })
       });
@@ -49,6 +53,7 @@ function gameFlow(options) {
         choice: null,
         correctChoice: null,
         word: data,
+        isVerbs: isVerbs,
         onChoose: onChoose.bind(null, data)
       });
     });
@@ -64,6 +69,7 @@ function gameFlow(options) {
         choice: null,
         correctChoice: null,
         word: data,
+        isVerbs: isVerbs,
         onChoose: onChoose.bind(null, data)
       });
     }, error => {

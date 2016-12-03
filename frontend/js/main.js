@@ -106,6 +106,7 @@ function start() {
 
       ReactDOM.render(React.createElement('noscript'), containerEl)
       gameFlow(Object.assign({}, flowOptions, {
+        isVerbs: true,
         wordsProvider: dataProvider.verbs
       }));
     }) }, stats() { unmountHandler(() => {
