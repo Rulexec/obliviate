@@ -71,7 +71,7 @@ class Game extends React.Component {
     }
 
     return (
-      <div className='game'>
+      <div className={'game' + (this.props.isVerbs ? ' verbs' : '')}>
         {this.props.isLoading ? <span>Загрузка...</span> :
         
          this.props.isError ? <DataLoadErrorRefresh refresh={this.props.refresh} /> :
