@@ -138,7 +138,7 @@ function Verbs() {
         stats.success++;
         stats.consecutive++;
 
-        if (stats.consecutive > 5) {
+        if (stats.consecutive > 3) {
           let pos = learningVerbs.indexOf(wordId),
               randRestPos = Math.random() * restVerbs.length | 0;
 
@@ -152,7 +152,7 @@ function Verbs() {
 
             let stats = verbsStats.get(restWordId);
             if (stats) stats.consecutive = 0;
-          } else if (stats.consecutive > 10) {
+          } else if (stats.consecutive > 5) {
             pos = learnedVerbs.indexOf(wordId);
 
             if (pos !== -1) {
