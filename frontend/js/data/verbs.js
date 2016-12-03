@@ -33,7 +33,7 @@ function Verbs() {
       verbsStats.set(id, {
         success: success,
         failures: failures,
-        сonsecutive: consecutive
+        consecutive: consecutive
       });
     });
   } else {
@@ -136,7 +136,7 @@ function Verbs() {
     if (stats) {
       if (choiceId === 'correct') {
         stats.success++;
-        stats.сonsecutive++;
+        stats.consecutive++;
 
         if (stats.consecutive > 5) {
           let pos = learningVerbs.indexOf(wordId),
@@ -192,6 +192,7 @@ function Verbs() {
         consecutive: choiceId === 'correct' ? 1 : 0
       });
     }
+    console.log(stats);
 
     saveStats();
 
