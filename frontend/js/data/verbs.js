@@ -3,9 +3,80 @@ exports.Verbs = Verbs;
 let util = require('../util');
 
 function Verbs() {
+  // wordId:success:failure:consecutive:ring,...
+  let statsData = localStorage.getItem('verbs');
+
+  let learningVerbs = [], learnedVerbs = [], restVerbs = [];
+  let verbsStats = new Map();
+
+  if (statsData) {
+    statsData.split(',').forEach(x => {
+      let data = x.split(':'),
+          id = parseInt(data[0], 10),
+          success = parseInt(data[1], 10),
+          failures = parseInt(data[2], 10),
+          consecutive = parseInt(data[3], 10);
+
+      if (isNaN(id)) return;
+      
+      isNaN(success) && (success = 0, failures = 0);
+      isNaN(failures) && (success = 0, failures = 0);
+      isNaN(consecutive) && (consecutive = 0);
+
+      switch (data[4]) {
+      case '0': restVerbs.push(id); break;
+      case '1': learnedVerbs.push(id); break;
+      case '2': learningVerbs.push(id); break;
+      default: restVerbs.push(id);
+      }
+
+      verbsStats.set(id, {
+        success: success,
+        failures: failures,
+        сonsecutive: consecutive
+      });
+    });
+  } else {
+    for (let i = 0; i < 10; i++) learningVerbs.push(i);
+    for (let i = 10; i < VERBS_DATA.length; i++) restVerbs.push(i);
+  }
+
+  let totalSize = learningVerbs.length + learnedVerbs.length + restVerbs.length;
+  for (let i = totalSize; i < VERBS_DATA.length; i++) {
+    restVerbs.push(i);
+  }
+
+  saveStats();
+
+  function saveStats() {
+    let sb = [];
+
+    learningVerbs.forEach(addStat.bind(null, 2));
+    learnedVerbs.forEach(addStat.bind(null, 1));
+    restVerbs.forEach(addStat.bind(null, 0));
+
+    let data = sb.join(',');
+
+    localStorage.setItem('verbs', data);
+
+    function addStat(ring, id) {
+      let stat = verbsStats.get(id);
+
+      if (!stat) stat = {success: 0, failures: 0, consecutive: 0};
+
+      sb.push(`${id}:${stat.success}:${stat.failures}:${stat.consecutive}:${ring}`);
+    }
+  }
+
   function getRandomWord() {
-    let wordId = Math.random() * VERBS_DATA.length | 0,
-        wordData = VERBS_DATA[wordId];
+    let wordId;
+
+    let rand = Math.random();
+    if (rand < 0.7) wordId = learningVerbs[Math.random() * learningVerbs.length | 0];
+    else if (rand < 0.9 && learnedVerbs.length > 0) wordId = learnedVerbs[Math.random() * learnedVerbs.length | 0];
+    else wordId = restVerbs[Math.random() * restVerbs.length | 0];
+
+    let wordData = VERBS_DATA[wordId];
 
     let wordText = wordData[0],
         wrongSecondForms = wordData[1].slice(1),
@@ -60,7 +131,70 @@ function Verbs() {
     return Promise.resolve(getRandomWord());
   };
 
-  this.checkWordAndGetNextRandomWord = function() {
+  this.checkWordAndGetNextRandomWord = function(wordId, choiceId) {
+    let stats = verbsStats.get(wordId);
+    if (stats) {
+      if (choiceId === 'correct') {
+        stats.success++;
+        stats.сonsecutive++;
+
+        if (stats.consecutive > 5) {
+          let pos = learningVerbs.indexOf(wordId),
+              randRestPos = Math.random() * restVerbs.length | 0;
+
+          if (pos !== -1) {
+            learningVerbs.splice(pos, 1);
+            learnedVerbs.push(wordId);
+
+            let restWordId = restVerbs[randRestPos];
+            restVerbs.splice(randRestPos, 1);
+            learningVerbs.push(restWordId);
+
+            let stats = verbsStats.get(restWordId);
+            if (stats) stats.consecutive = 0;
+          } else if (stats.consecutive > 10) {
+            pos = learnedVerbs.indexOf(wordId);
+
+            if (pos !== -1) {
+              learnedVerbs.splice(pos, 1);
+              restVerbs.push(wordId);
+
+              stats.consecutive = 0;
+            }
+          }
+        }
+      } else {
+        stats.failures++;
+        stats.consecutive = 0;
+
+        let pos = learnedVerbs.indexOf(wordId);
+        
+        if (pos !== -1) {
+          learnedVerbs.splice(pos, 1);
+
+          learningVerbs.sort(function(a, b) {
+            let aStats = verbsStats.get(a),
+                bStats = verbsStats.get(b);
+
+            if (aStats && bStats) {
+              return bStats.success - aStats.success;
+            }
+          });
+          learningVerbs.splice(learningVerbs.length - 1, 1);
+
+          learningVerbs.push(wordId);
+        }
+      }
+    } else {
+      verbsStats.set(wordId, {
+        success: choiceId === 'correct' ? 1 : 0,
+        failures: choiceId === 'correct' ? 0 : 1,
+        consecutive: choiceId === 'correct' ? 1 : 0
+      });
+    }
+
+    saveStats();
+
     return Promise.resolve({
       correct: 'correct',
       word: getRandomWord()
