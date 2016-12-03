@@ -4,7 +4,7 @@ exports.gameFlow = gameFlow;
 
 function gameFlow(options) {
   let render = options.render.bind(options, Game),
-      dataProvider = options.dataProvider;
+      wordsProvider = options.wordsProvider;
 
   function onChoose(data, choice) {
     render({
@@ -15,7 +15,7 @@ function gameFlow(options) {
       word: data
     });
 
-    dataProvider.checkWordAndGetNextRandomWord(data.wordId, data.choices[choice].id).then(newData => {
+    wordsProvider.checkWordAndGetNextRandomWord(data.wordId, data.choices[choice].id).then(newData => {
       let correctChoice;
       data.choices.some(({id}, i) => {
         if (id === newData.correct) return (correctChoice = i), true;
@@ -57,7 +57,7 @@ function gameFlow(options) {
   function loadFirstWord() {
     render({isLoading: true});
 
-    dataProvider.getRandomWord().then(data => {
+    wordsProvider.getRandomWord().then(data => {
       render({
         isShowingResult: false,
         isDisabled: false,
