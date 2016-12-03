@@ -26,3 +26,18 @@ exports.forEachOwnProperty = function(object, fn) {
     fn.call(object, key, i++);
   }
 };
+
+exports.shuffleArrayInPlace = function(array) {
+  for (let i = 0; i < array.length - 2; i++) {
+    let j = i + (Math.random() * (array.length - i) | 0);
+
+    if (i === j) continue;
+
+    // swap
+    let x = array[i];
+    array[i] = array[j];
+    array[j] = x;
+  }
+
+  return array;
+};

@@ -3,7 +3,7 @@ require('../css/index.less');
 let React = require('react'),
     ReactDOM = require('react-dom'),
 
-    DataProvider = require('./dataProvider').DataProvider,
+    DataProvider = require('./data/dataProvider').DataProvider,
 
     Session = require('./session').Session,
 
@@ -86,7 +86,12 @@ function start() {
       header.chooseMenuItem('home'); header.render();
 
       ReactDOM.render(React.createElement('noscript'), containerEl)
-      gameFlow(flowOptions);
+      gameFlow(Object.assign({}, flowOptions, {
+        wordsProvider: {
+          checkWordAndGetNextRandomWord: dataProvider.checkWordAndGetNextRandomWord.bind(dataProvider),
+          getRandomWord: dataProvider.getRandomWord.bind(dataProvider)
+        }
+      }));
     }) }, edit() {
       if (!user) { router.go(''); return; }
 
@@ -98,28 +103,11 @@ function start() {
       })
     }, verbs() { unmountHandler(() => {
       header.chooseMenuItem('verbs'); header.render();
-      function render(emailIsValid) {
-        flowOptions.render(VerbsReact, {
-          emailIsDisabled: false,
-          emailIsValid: emailIsValid,
-          onEmail: email => {
-            if (/^[^@]+@[^@]+$/.test(email)) {
-              flowOptions.render(VerbsReact, {emailIsDisabled: true});
 
-              dataProvider.sendVerbsEmail(email).then(() => {
-                flowOptions.render(VerbsReact, {emailIsDisabled: true, emailed: true});
-              }, error => {
-                console.error(error);
-                render(true);
-              });
-            } else {
-              render(false);
-            }
-          }
-        });
-      }
-
-      render(true);
+      ReactDOM.render(React.createElement('noscript'), containerEl)
+      gameFlow(Object.assign({}, flowOptions, {
+        wordsProvider: dataProvider.verbs
+      }));
     }) }, stats() { unmountHandler(() => {
       header.chooseMenuItem('stats'); header.render();
       flowOptions.render(NotImplemented, {});

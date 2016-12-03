@@ -1,16 +1,31 @@
 exports.DataProvider = DataProvider;
 
-let util = require('./util');
+let util = require('../util'),
+    Verbs = require('./verbs').Verbs;
 
 function DataProvider(options) {
   let session = options.session,
       onSessionBroken = options.onSessionBroken;
 
+  this.verbs = new Verbs();
+
   this.getRandomWord = function() {
+    /*{"wordId":108,
+       "word":"lol",
+       "choices":[
+         {"id":"74f38106-c19b-4970-9d7f-7a602f269004","value":"asd"},
+         {"id":"0746dc9e-b67c-46fe-8ae7-b241941f11c5","value":"123"},
+         {"id":"5c5ce4a4-24ab-4db7-be27-d636eb54cff6","value":"123231"},
+         {"id":"9e2bd871-b402-4fd1-9774-3c4ee946aa0f","value":"hgfh"}
+       ]
+      } */
     return fetchJSON('words/random');
   };
 
   this.checkWordAndGetNextRandomWord = function(wordId, choiceId) {
+    /*{"correct": "<choiceId>",
+       "word": <word>}
+     */
     return fetchJSON('words/check/' + wordId, {
       method: 'POST',
       body: choiceId
